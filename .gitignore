@@ -1,1 +1,32 @@
+# OS
+.DS_Store
+Thumbs.db
 
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Backend (Spring Boot / Maven / Gradle)
+backend/target/
+backend/build/
+backend/.mvn/
+backend/out/
+
+# Frontend (React / Node)
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# AI / Python
+ai/__pycache__/
+ai/*.pyc
+ai/.venv/
+ai/venv/
+ai/env/
