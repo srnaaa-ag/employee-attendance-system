@@ -29,6 +29,18 @@
   color: var(--color-text);
 }
 
+.app-header--dash {
+  background: #5c6474;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.app-header--dash .app-header__title {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
 .app-content {
   flex: 1;
   padding: 1.5rem;
