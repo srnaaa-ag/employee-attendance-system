@@ -1,7 +1,7 @@
 const TOKEN_KEY = "attendance_token";
 const ROLE_KEY = "attendance_role";
 
-/** @typedef {"admin" | "employee"} UserRole */
+/** @typedef {"SUPER_ADMIN" | "ADMIN" | "EMPLOYEE"} UserRole */
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -19,14 +19,30 @@ export function isAuthenticated() {
 /** @returns {UserRole | null} */
 export function getRole() {
   const r = localStorage.getItem(ROLE_KEY);
-  if (r === "admin" || r === "employee") return r;
+  if (r === "SUPER_ADMIN" || r === "ADMIN" || r === "EMPLOYEE") return r;
   return null;
 }
 
 /** @param {UserRole | null} role */
 export function setRole(role) {
-  if (role === "admin" || role === "employee") localStorage.setItem(ROLE_KEY, role);
-  else localStorage.removeItem(ROLE_KEY);
+  if (role === "SUPER_ADMIN" || role === "ADMIN" || role === "EMPLOYEE") {
+    localStorage.setItem(ROLE_KEY, role);
+  } else {
+    localStorage.removeItem(ROLE_KEY);
+  }
+}
+
+export function isAdmin() {
+  const role = getRole();
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+}
+
+export function isSuperAdmin() {
+  return getRole() === "SUPER_ADMIN";
+}
+
+export function isEmployee() {
+  return getRole() === "EMPLOYEE";
 }
 
 export function clearSession() {

@@ -204,6 +204,13 @@
   background: var(--color-primary-hover);
 }
 
+.login__error {
+    color: red;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
 @media (max-width: 900px) {
   .login {
     flex-direction: column;
