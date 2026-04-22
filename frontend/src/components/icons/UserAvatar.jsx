@@ -1,6 +1,4 @@
-/**
- * Слика на корисник од дизајн (`/avatar-user.png`).
- */
+
 export default function UserAvatar({ size = 72, className = "", alt }) {
   const isDecorative = alt === undefined;
   return (

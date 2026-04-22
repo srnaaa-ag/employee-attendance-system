@@ -90,6 +90,24 @@ export function IconLock(props) {
   );
 }
 
+/** Камера — скенирање лице */
+export function IconCamera(props) {
+  const p = { ...defaultProps, ...props };
+  return wrapSvg(
+    <>
+      <path
+        d="M4 9h2.2l1.4-2.2h8.8l1.4 2.2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"
+        stroke="currentColor"
+        strokeWidth="1.65"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <circle cx="12" cy="14" r="3.25" stroke="currentColor" strokeWidth="1.65" fill="none" />
+    </>,
+    p
+  );
+}
+
 /** Три вработени во ред */
 export function IconUsers(props) {
   const p = { ...defaultProps, ...props };

@@ -16,7 +16,7 @@ export default function Sidebar() {
   const profile =
     role === "admin"
       ? { name: "Доне Донев", roleLabel: "Администратор" }
-      : { name: "Корисник", roleLabel: "Вработен" };
+      : { name: "Доне Донев", roleLabel: "Вработен" };
 
   function handleLogout() {
     clearSession();
