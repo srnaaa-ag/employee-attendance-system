@@ -55,3 +55,121 @@
 .stat-card__value--ok {
   color: var(--color-success);
 }
+.leave-container {
+  padding: 20px;
+}
+
+.leave-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #ddd;
+}
+
+.card h3 {
+  background: #243c7c;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.primary-btn {
+  margin-top: 15px;
+  background: #243c7c;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.status.approved {
+  background: #4caf50;
+  color: white;
+}
+
+.status.pending {
+  background: #f4a261;
+  color: white;
+}
+.employees-container {
+  padding: 20px;
+}
+
+.top-actions {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.secondary-btn {
+  background: transparent;
+  border: 2px solid #243c7c;
+  color: #243c7c;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background: #e0e6f5;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.status.green {
+  background: #4caf50;
+  color: white;
+}
+
+.status.orange {
+  background: #f4a261;
+  color: white;
+}

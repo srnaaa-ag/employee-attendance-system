@@ -23,8 +23,7 @@
   margin-bottom: 0.85rem;
 }
 
-.sidebar__profile-name {
-  margin: 0;
+.sidebar__pr{
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--color-text);
