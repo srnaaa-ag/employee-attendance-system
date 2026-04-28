@@ -22,10 +22,21 @@ export const adminNavItems = [
  */
 export function getNavGroups(role) {
   if (role === "employee") {
-    return { primary: employeeNavItems, secondary: [] };
+    return {
+      primary: employeeNavItems,
+      secondary: [],
+    };
   }
+
+  if (role === "admin") {
+    return {
+      primary: adminNavItems,
+      secondary: [],
+    };
+  }
+
   return {
-    primary: adminNavItems.slice(0, 3),
-    secondary: adminNavItems.slice(3),
+    primary: [],
+    secondary: [],
   };
 }
