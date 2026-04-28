@@ -3,17 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { IconLock, IconUserCircle } from "../components/icons/NavIcons.jsx";
 import UserAvatar from "../components/icons/UserAvatar.jsx";
 import { setRole, setToken } from "../services/authService.js";
+import { login } from "../services/api.js";
 import "./Login.css";
 
 export default function Login() {
   const navigate = useNavigate();
   const [access, setAccess] = useState("employee");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setRole(access);
-    setToken("demo");
-    navigate("/dashboard", { replace: true });
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await login(email, password);
+      setToken(data.token);
+      setRole(data.role);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -26,9 +41,7 @@ export default function Login() {
             type="button"
             role="tab"
             aria-selected={access === "employee"}
-            className={
-              access === "employee" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"
-            }
+            className={access === "employee" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"}
             onClick={() => setAccess("employee")}
           >
             Вработен
@@ -37,9 +50,7 @@ export default function Login() {
             type="button"
             role="tab"
             aria-selected={access === "admin"}
-            className={
-              access === "admin" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"
-            }
+            className={access === "admin" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"}
             onClick={() => setAccess("admin")}
           >
             Администратор
@@ -62,6 +73,8 @@ export default function Login() {
                 placeholder="Email"
                 autoComplete="email"
                 aria-label="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="login__field">
@@ -73,15 +86,19 @@ export default function Login() {
                 placeholder="Password"
                 autoComplete="current-password"
                 aria-label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+
+            {error && <p className="login__error">{error}</p>}
 
             <div className="login__row">
               <a href="#" className="login__forgot" onClick={(e) => e.preventDefault()}>
                 Заборавена лозинка?
               </a>
-              <button type="submit" className="login__submit">
-                Најави се
+              <button type="submit" className="login__submit" disabled={loading}>
+                {loading ? "Најавување..." : "Најави се"}
               </button>
             </div>
           </form>

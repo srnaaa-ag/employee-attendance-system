@@ -1,4 +1,4 @@
-package com.attendance.system.model;
+package com.attendance.system.model.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,22 +6,22 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "face_data")
+@Table(name = "notifications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class FaceData {
+public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String image_path;
-    private String embedding_data;
+    private String type;
+    private String message;
+    private boolean is_read;
     private LocalDateTime created_at;
-    private LocalDateTime updated_at;
 
     @ManyToOne
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
+    @JoinColumn(name = "user_id")
+    private User user;
 }

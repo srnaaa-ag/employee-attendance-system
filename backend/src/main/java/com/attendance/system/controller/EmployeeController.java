@@ -1,6 +1,6 @@
 package com.attendance.system.controller;
 
-import com.attendance.system.model.Employee;
+import com.attendance.system.model.domain.Employee;
 import com.attendance.system.service.EmployeeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

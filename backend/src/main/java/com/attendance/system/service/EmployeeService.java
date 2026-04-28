@@ -1,6 +1,6 @@
 package com.attendance.system.service;
 
-import com.attendance.system.model.Employee;
+import com.attendance.system.model.domain.Employee;
 import com.attendance.system.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
