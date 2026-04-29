@@ -2,6 +2,7 @@ package com.attendance.system.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -34,15 +35,41 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+
+                        // Public
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // EMPLOYEE
+                        .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasRole("EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/**").hasRole("EMPLOYEE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasRole("EMPLOYEE")
+
+                        // ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/{id}").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/status/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/date-range")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/pending")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/approve")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/reject")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // SUPER_ADMIN
+                        .requestMatchers(HttpMethod.DELETE, "/api/leave-requests/**").hasRole("SUPER_ADMIN")
+
+                        // fallback
+                        .anyRequest().authenticated())
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
