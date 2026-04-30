@@ -6,9 +6,14 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.attendance.system.model.enums.LeaveRequestStatus;
+import com.attendance.system.model.enums.LeaveType;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 @Entity
 @Table(name = "leave_requests")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LeaveRequest {
@@ -17,11 +22,20 @@ public class LeaveRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDate start_date;
-    private LocalDate end_date;
-    private String leave_type;
+    @Column(name = "start_date")
+    @JsonFormat(pattern = "dd.MM.yyyy")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    @JsonFormat(pattern = "dd.MM.yyyy")
+    private LocalDate endDate;
+
+    @Enumerated(EnumType.STRING)
+    private LeaveType leave_type;
     private String reason;
-    private String status;
+
+    @Enumerated(EnumType.STRING)
+    private LeaveRequestStatus status;
 
     private LocalDateTime created_at;
     private LocalDateTime reviewed_at;
