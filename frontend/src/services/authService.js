@@ -1,5 +1,6 @@
 const TOKEN_KEY = "attendance_token";
 const ROLE_KEY = "attendance_role";
+const NAME_KEY = "attendance_name";
 
 /** @typedef {"SUPER_ADMIN" | "ADMIN" | "EMPLOYEE"} UserRole */
 
@@ -32,6 +33,18 @@ export function setRole(role) {
   }
 }
 
+export function getName() {
+  return localStorage.getItem(NAME_KEY);
+}
+
+export function setName(name) {
+  if (name && name.trim().length > 0) {
+    localStorage.setItem(NAME_KEY, name);
+  } else {
+    localStorage.removeItem(NAME_KEY);
+  }
+}
+
 export function isAdmin() {
   const role = getRole();
   return role === "ADMIN" || role === "SUPER_ADMIN";
@@ -48,4 +61,5 @@ export function isEmployee() {
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem(NAME_KEY);
 }

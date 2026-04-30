@@ -21,14 +21,14 @@ export const adminNavItems = [
  * @returns {{ primary: NavItem[]; secondary: NavItem[] }}
  */
 export function getNavGroups(role) {
-  if (role === "employee") {
+  if (role === "EMPLOYEE") {
     return {
       primary: employeeNavItems,
       secondary: [],
     };
   }
 
-  if (role === "admin") {
+  if (role === "ADMIN") {
     return {
       primary: adminNavItems,
       secondary: [],

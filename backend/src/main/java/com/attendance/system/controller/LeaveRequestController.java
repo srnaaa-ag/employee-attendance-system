@@ -30,7 +30,7 @@ public class LeaveRequestController {
     public ResponseEntity<?> createLeaveRequest(@Valid @RequestBody LeaveRequestCreateDTO dto,Authentication authentication) {
         try {
             User user = (User) authentication.getPrincipal();
-            Employee employee = employeeService.getEmployeeById(user.getId());
+            Employee employee = employeeService.findByUser(user);
 
             LeaveRequest leaveRequest = LeaveRequest.builder()
                     .startDate(dto.getStartDate())
@@ -66,8 +66,9 @@ public class LeaveRequestController {
     public ResponseEntity<List<LeaveRequestResponseDTO>> getMyLeaveRequests(Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
+        Employee employee = employeeService.findByUser(user);
 
-        List<LeaveRequestResponseDTO> requests = leaveRequestService.getLeaveRequestsByEmployeeId(user.getId())
+        List<LeaveRequestResponseDTO> requests = leaveRequestService.getLeaveRequestsByEmployeeId(employee.getId())
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
