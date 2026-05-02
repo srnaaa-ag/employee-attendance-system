@@ -18,9 +18,9 @@ export default function AppLayout() {
   const useDashHeader = isDashboard || isAttendance;
 
   const title = isDashboard
-    ? `Контролна табла - ${role === "admin" ? "администратор" : "вработен"}`
+    ? `Контролна табла - ${role === "ADMIN" ? "администратор" : "вработен"}`
     : isAttendance
-      ? `Евиденција - ${role === "admin" ? "администратор" : "вработен"}`
+      ? `Евиденција - ${role === "ADMIN" ? "администратор" : "вработен"}`
       : (routeTitles[pathname] ?? "Систем за присуство");
 
   return (

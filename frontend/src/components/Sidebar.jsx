@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { getNavGroups } from "../utils/navItems.js";
 import { NavIcon, IconLogout } from "./icons/NavIcons.jsx";
 import UserAvatar from "./icons/UserAvatar.jsx";
-import { clearSession, getRole } from "../services/authService.js";
+import { clearSession, getRole, getName } from "../services/authService.js";
 import "./Sidebar.css";
 
 const linkClass = ({ isActive }) =>
@@ -10,13 +10,14 @@ const linkClass = ({ isActive }) =>
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const role = getRole() ?? "employee";
-  const { primary, secondary } = getNavGroups(role);
 
-  const profile =
-    role === "admin"
-      ? { name: "Доне Донев", roleLabel: "Администратор" }
-      : { name: "Доне Донев", roleLabel: "Вработен" };
+  const profile = 
+  {
+    name : getName(),
+    role: getRole()
+  }
+
+    const { primary, secondary } = getNavGroups(profile.role);
 
   function handleLogout() {
     clearSession();
@@ -28,7 +29,7 @@ export default function Sidebar() {
       <div className="sidebar__profile">
         <UserAvatar size={80} className="sidebar__avatar" />
         <p className="sidebar__profile-name">{profile.name}</p>
-        <p className="sidebar__profile-role">{profile.roleLabel}</p>
+        <p className="sidebar__profile-role">{profile.role}</p>
       </div>
 
       <nav className="sidebar__nav" aria-label="Мени">

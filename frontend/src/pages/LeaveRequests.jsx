@@ -1,30 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Page.css";
+import {
+  createLeaveRequest,
+  getRequestsForLoggedInEmployee,
+} from "../services/leaveRequest";
 
 export default function LeaveRequests() {
   const [form, setForm] = useState({
-    type: "",
-    from: "",
-    to: "",
-    comment: "",
+    leaveType: "ANNUAL",
+    startDate: "",
+    endDate: "",
+    reason: "",
   });
 
-  const requests = [
-    {
-      period: "01-08.04.2026",
-      type: "Одмор",
-      status: "Во обработка",
-    },
-    {
-      period: "12.03.2026",
-      type: "Боледување",
-      status: "Одобрено",
-    },
-  ];
+  const [requests, setRequests] = useState([]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  // ✅ Fetch requests on load
+  const loadRequests = async () => {
+    try {
+      const data = await getRequestsForLoggedInEmployee();
+      setRequests(data);
+    } catch (err) {
+      console.error("Error loading requests:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  // ✅ Submit form
+  const handleSubmit = async () => {
+    try {
+      await createLeaveRequest(form);
+
+      // refresh list after submit
+      await loadRequests();
+
+      // reset form
+      setForm({
+        leaveType: "",
+        startDate: "",
+        endDate: "",
+        reason: "",
+      });
+    } catch (err) {
+      console.error("Error creating request:", err);
+    }
+  };
+
+  // helper for formatting
+  const formatPeriod = (start, end) => {
+    if (!start || !end) return "";
+    return `${start} - ${end}`;
+  };
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+
+    const [year, month, day] = dateStr.split("-");
+    return `${day}-${month}-${year}`;
+  }
 
   return (
     <div className="leave-container">
@@ -36,30 +76,36 @@ export default function LeaveRequests() {
           <h3>Ново барање</h3>
 
           <label>Тип</label>
-          <select name="type" onChange={handleChange}>
-            <option>Годишен одмор</option>
-            <option>Боледување</option>
+          <select
+            name="leaveType"
+            value={form.leaveType}
+            onChange={handleChange}
+          >
+            <option value={"ANNUAL"}>Годишен одмор</option>
+            <option value={"SICK_LEAVE"}>Боледување</option>
           </select>
 
           <div className="row">
             <div>
               <label>Од датум</label>
-              <input type="date" name="from" onChange={handleChange} />
+              <input type="date" name="startDate" onChange={handleChange} />
             </div>
             <div>
               <label>До датум</label>
-              <input type="date" name="to" onChange={handleChange} />
+              <input type="date" name="endDate" onChange={handleChange} />
             </div>
           </div>
 
           <label>Коментар</label>
           <textarea
-            name="comment"
+            name="reason"
             placeholder="Приложи објаснување"
             onChange={handleChange}
           />
 
-          <button className="primary-btn">Поднеси барање</button>
+          <button className="primary-btn" onClick={handleSubmit}>
+            Поднеси барање
+          </button>
         </div>
 
         {/* RIGHT - TABLE */}
@@ -77,12 +123,14 @@ export default function LeaveRequests() {
             <tbody>
               {requests.map((r, i) => (
                 <tr key={i}>
-                  <td>{r.period}</td>
-                  <td>{r.type}</td>
+                  <td>
+                    {formatDate(r.startDate)} : {formatDate(r.endDate)}
+                  </td>
+                  <td>{r.leaveType}</td>
                   <td>
                     <span
                       className={
-                        r.status === "Одобрено"
+                        r.status === "APPROVED"
                           ? "status approved"
                           : "status pending"
                       }

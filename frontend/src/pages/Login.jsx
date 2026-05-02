@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconLock, IconUserCircle } from "../components/icons/NavIcons.jsx";
 import UserAvatar from "../components/icons/UserAvatar.jsx";
-import { setRole, setToken } from "../services/authService.js";
+import { setRole, setToken, setName } from "../services/authService.js";
 import { login } from "../services/api.js";
 import "./Login.css";
 
@@ -23,6 +23,8 @@ export default function Login() {
       const data = await login(email, password);
       setToken(data.token);
       setRole(data.role);
+      setName(data.fullName);
+
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError("Invalid email or password");

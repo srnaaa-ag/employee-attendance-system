@@ -19,8 +19,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.core.env.Environment;
 import lombok.RequiredArgsConstructor;
 
+
+
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -31,10 +35,12 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final Environment env;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -44,9 +50,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
 
                         // EMPLOYEE
-                        .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasRole("EMPLOYEE")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/**").hasRole("EMPLOYEE")
-                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasRole("EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
 
                         // ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -77,9 +83,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:3000"));
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+
+        String allowedOrigins = env.getProperty("cors.allowed.origins", "http://localhost:5173");
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+
+        corsConfiguration.setAllowedOrigins(origins); 
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
+        corsConfiguration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;

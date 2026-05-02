@@ -41,11 +41,14 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        Employee employee = employeeRepository.findByUser(user);
+
         String token = jwtService.generateToken((UserDetails)user);
         return Map.of(
                 "token", token,
                 "role", user.getRole().name(),
-                "email", user.getEmail()
+                "email", user.getEmail(),
+                "fullName", employee.getFirst_name() + " " + employee.getLast_name()
         );
     }
 }

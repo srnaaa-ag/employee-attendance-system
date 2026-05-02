@@ -1,6 +1,7 @@
 package com.attendance.system.service;
 
 import com.attendance.system.model.domain.Employee;
+import com.attendance.system.model.domain.User;
 import com.attendance.system.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,10 @@ public class EmployeeService {
     public Employee getEmployeeById(Long id) {
         return employeeRepository.findById(id)
                 .orElseThrow(()-> new RuntimeException("Employee not found with id: " + id));
+    }
+
+    public Employee findByUser(User user) {
+        return employeeRepository.findByUser(user);
     }
 
     public Employee createEmployee(Employee employee) {
