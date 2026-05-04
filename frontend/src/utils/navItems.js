@@ -5,6 +5,7 @@ export const employeeNavItems = [
   { to: "/dashboard", label: "Контролна табла", icon: "home" },
   { to: "/attendance", label: "Евиденција", icon: "idcard" },
   { to: "/leave-requests", label: "Барање за отсуство", icon: "calendar" },
+  { to: "/profile", label: "Мој профил", icon: "user" },
 ];
 
 /** @type {NavItem[]} */

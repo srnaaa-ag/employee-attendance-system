@@ -200,6 +200,7 @@ const iconMap = {
   lock: IconLock,
   users: IconUsers,
   csv: IconCsv,
+  user: IconUserCircle,
 };
 
 export function NavIcon({ name, ...rest }) {
