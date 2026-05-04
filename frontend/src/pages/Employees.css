@@ -1,0 +1,439 @@
+.employees-page {
+    padding: 1.25rem 1.5rem;
+    max-width: 100%;
+}
+
+.employees__shell {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e4ef;
+    box-shadow: 0 1px 3px rgba(36, 60, 124, 0.08);
+    overflow: hidden;
+}
+
+.employees__titlebar {
+    margin: 0;
+    padding: 0.85rem 1.25rem;
+    background: #243c7c;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.employees__body {
+    padding: 1.25rem 1.25rem 1.5rem;
+}
+
+.employees__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.employees__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.employees__btn--primary {
+    background: #243c7c;
+    color: #fff;
+    border: 2px solid #243c7c;
+}
+
+.employees__btn--primary:hover {
+    background: #1c2f63;
+    border-color: #1c2f63;
+}
+
+.employees__btn--outline {
+    background: #fff;
+    color: #243c7c;
+    border: 2px solid #243c7c;
+}
+
+.employees__btn--outline:hover {
+    background: #f0f3fa;
+}
+
+.employees__table-card {
+    border: 1px solid #e0e4ef;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fafbfd;
+}
+
+.employees__table-head {
+    margin: 0;
+    padding: 0.65rem 1rem;
+    background: #243c7c;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.employees__table-scroll {
+    overflow-x: auto;
+    background: #fff;
+}
+
+.employees__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.employees__table thead th {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    background: #f4f6fb;
+    color: #243c7c;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #e0e4ef;
+    white-space: nowrap;
+}
+
+.employees__th-actions {
+    text-align: right;
+    width: 1%;
+}
+
+.employees__table tbody td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #eef0f5;
+    vertical-align: middle;
+    color: #2c3347;
+}
+
+.employees__table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.employees__cell-strong {
+    font-weight: 600;
+    color: #1a2235;
+}
+
+.employees__cell-mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.employees__cell-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.employees__badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.employees__badge--ok {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #a5d6a7;
+}
+
+.employees__badge--warn {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+}
+
+.employees__edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 1rem;
+    border-radius: 8px;
+    border: 1px solid #243c7c;
+    background: #fff;
+    color: #243c7c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.employees__edit:hover {
+    background: #243c7c;
+    color: #fff;
+}
+
+.emp-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+}
+
+.emp-modal__panel {
+    width: 100%;
+    max-width: 640px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e4ef;
+    box-shadow: 0 20px 50px rgba(36, 60, 124, 0.2);
+    margin-bottom: 2rem;
+}
+
+.emp-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: #243c7c;
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+}
+
+.emp-modal__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.emp-modal__x {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 1;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.emp-modal__x:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.emp-modal__subtitle {
+    margin: 0;
+    padding: 0.75rem 1.25rem 0;
+    font-size: 0.95rem;
+    color: #4a5568;
+}
+
+.emp-modal__body {
+    padding: 1rem 1.25rem 1.25rem;
+    max-height: min(70vh, 620px);
+    overflow-y: auto;
+}
+
+.emp-modal__grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 560px) {
+    .emp-modal__grid2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.emp-modal__field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #243c7c;
+    margin-bottom: 0.35rem;
+}
+
+.emp-modal__field input {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid #cfd8e8;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.emp-modal__fieldset {
+    margin: 1.25rem 0 0;
+    padding: 0;
+    border: none;
+}
+
+.emp-modal__fieldset legend {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1a2235;
+    padding: 0;
+}
+
+.emp-modal__hint {
+    margin: 0.5rem 0 0.75rem;
+    font-size: 0.82rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.emp-modal__hint--info {
+    color: #243c7c;
+    background: #eef2fb;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid #c5d4ef;
+}
+
+.emp-modal__linkish {
+    display: inline-block;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #243c7c;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.emp-modal__week {
+    border: 1px solid #e0e4ef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.emp-modal__week-head {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 1fr) auto 5.5rem 5.5rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f4f6fb;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #243c7c;
+}
+
+.emp-modal__week-row {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 1fr) auto 5.5rem 5.5rem;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.45rem 0.75rem;
+    border-top: 1px solid #eef0f5;
+    font-size: 0.88rem;
+}
+
+.emp-modal__week-day {
+    font-weight: 600;
+    color: #2c3347;
+}
+
+.emp-modal__week-off {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.emp-modal__week-time {
+    width: 100%;
+    padding: 0.35rem 0.25rem;
+    border: 1px solid #cfd8e8;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.emp-modal__week-time:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.emp-modal__photo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-top: 0.5rem;
+}
+
+.emp-modal__photo-preview {
+    width: 140px;
+    height: 140px;
+    border-radius: 10px;
+    border: 2px dashed #cfd8e8;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.emp-modal__photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.emp-modal__photo-placeholder {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.emp-modal__photo-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.emp-modal__file {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.emp-modal__file-label {
+    cursor: pointer;
+    margin: 0;
+}
+
+.emp-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #e0e4ef;
+    background: #fafbfd;
+    border-radius: 0 0 12px 12px;
+}

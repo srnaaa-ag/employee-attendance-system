@@ -1,0 +1,175 @@
+.reports-page {
+    padding: 1.25rem 1.5rem;
+    max-width: 100%;
+}
+
+.reports__shell {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e4ef;
+    box-shadow: 0 1px 3px rgba(36, 60, 124, 0.08);
+    overflow: hidden;
+}
+
+.reports__titlebar {
+    margin: 0;
+    padding: 0.85rem 1.25rem;
+    background: #243c7c;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.reports__body {
+    padding: 1.25rem 1.25rem 1.5rem;
+}
+
+.reports__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.reports__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 140px;
+}
+
+.reports__field--grow {
+    flex: 1;
+    min-width: 160px;
+    max-width: 220px;
+}
+
+.reports__field--btn {
+    min-width: auto;
+    margin-left: auto;
+}
+
+.reports__field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #243c7c;
+}
+
+.reports__label-spacer {
+    display: block;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    visibility: hidden;
+}
+
+.reports__field input,
+.reports__field select {
+    padding: 0.55rem 0.65rem;
+    border: 1px solid #cfd8e8;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1a2235;
+    background: #fff;
+}
+
+.reports__btn-csv {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 1.35rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #243c7c;
+    color: #fff;
+    border: 2px solid #243c7c;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.reports__btn-csv:hover {
+    background: #1c2f63;
+    border-color: #1c2f63;
+}
+
+.reports__table-card {
+    border: 1px solid #e0e4ef;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fafbfd;
+}
+
+.reports__table-head {
+    margin: 0;
+    padding: 0.65rem 1rem;
+    background: #243c7c;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.reports__table-scroll {
+    overflow-x: auto;
+    background: #fff;
+}
+
+.reports__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.reports__table thead th {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    background: #e8eef9;
+    color: #243c7c;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #c5d4ef;
+    white-space: nowrap;
+}
+
+.reports__table tbody td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #eef0f5;
+    vertical-align: middle;
+    color: #2c3347;
+}
+
+.reports__table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.reports__cell-name {
+    font-weight: 600;
+    color: #1a2235;
+}
+
+.reports__cell-mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.reports__empty {
+    text-align: center;
+    color: #64748b;
+    padding: 1.5rem 1rem !important;
+}
+
+@media (max-width: 720px) {
+    .reports__field--btn {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .reports__btn-csv {
+        width: 100%;
+    }
+}

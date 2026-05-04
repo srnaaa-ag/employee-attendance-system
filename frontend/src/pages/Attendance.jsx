@@ -109,7 +109,7 @@ export default function Attendance() {
   useEffect(() => () => stopStream(), [stopStream]);
 
   const finishScan = useCallback(
-    (ok) => {
+      (ok) => {
       if (scanFinishedRef.current) return;
       scanFinishedRef.current = true;
       if (detectIntervalRef.current) {
@@ -121,8 +121,8 @@ export default function Attendance() {
         timeoutRef.current = null;
       }
       setScanning(false);
-      setScanResult(ok ? "success" : "error");
-      if (ok) setScanError(null);
+        setScanResult(ok ? "success" : "error");
+        if (ok) setScanError(null);
       stopStream();
     },
     [stopStream]
@@ -215,8 +215,8 @@ export default function Attendance() {
     setScanning(true);
 
     timeoutRef.current = window.setTimeout(() => {
-      finishScan(false);
-    }, SCAN_TIMEOUT_MS);
+        finishScan(false);
+        }, SCAN_TIMEOUT_MS);
 
     detectIntervalRef.current = window.setInterval(async () => {
       const v = videoRef.current;
@@ -228,8 +228,8 @@ export default function Attendance() {
           setFaceBox(box);
           streakRef.current += 1;
           if (streakRef.current >= FACE_STREAK) {
-            if (locationOkRef.current) finishScan(true);
-            else finishScan(false);
+              if (locationOkRef.current) finishScan(true);
+              else finishScan(false);
           }
         } else {
           streakRef.current = 0;
@@ -241,7 +241,7 @@ export default function Attendance() {
     }, 200);
   };
 
-  const handleCheckout = () => {
+    const handleCheckout = () => {
     scanFinishedRef.current = false;
     stopStream();
     setScanResult(null);
@@ -345,7 +345,7 @@ export default function Attendance() {
             {scanResult === null && <div className="attendance__pill-hint">Скенирај лице и дозволи локација за статус.</div>}
             <p className="attendance__shift">Работно време: 08:00 - 16:00</p>
             <p className="attendance__hint">Имате 2 чекори за евиденција</p>
-            <button type="button" className="attendance__btn-checkout" onClick={handleCheckout}>
+              <button type="button" className="attendance__btn-checkout" onClick={handleCheckout}>
               <IconLogout size={20} />
               CHECK OUT
             </button>

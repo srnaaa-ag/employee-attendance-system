@@ -82,20 +82,30 @@ export async function updateLeaveRequest(id, data) {
   return res.json();
 }
 
-// APPROVE
-export async function approveLeaveRequest(id) {
+// APPROVE ( + опционален adminComment, макс. 500 на backend)
+export async function approveLeaveRequest(id, adminComment) {
+  const payload = {};
+  if (adminComment != null && String(adminComment).trim() !== "") {
+    payload.adminComment = String(adminComment).trim();
+  }
   const res = await fetch(`${BASE_URL}/${id}/approve`, {
     method: "PATCH",
-    headers: getHeaders()
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
   });
   return res.json();
 }
 
-// REJECT
-export async function rejectLeaveRequest(id) {
+// REJECT ( + опционален adminComment)
+export async function rejectLeaveRequest(id, adminComment) {
+  const payload = {};
+  if (adminComment != null && String(adminComment).trim() !== "") {
+    payload.adminComment = String(adminComment).trim();
+  }
   const res = await fetch(`${BASE_URL}/${id}/reject`, {
     method: "PATCH",
-    headers: getHeaders()
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
   });
   return res.json();
 }
