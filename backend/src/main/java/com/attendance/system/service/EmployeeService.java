@@ -1,5 +1,6 @@
 package com.attendance.system.service;
 
+import com.attendance.system.dto.UpdateProfileRequestDTO;
 import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.User;
 import com.attendance.system.repository.EmployeeRepository;
@@ -47,5 +48,14 @@ public class EmployeeService {
     public void deleteEmployee(Long id) {
         Employee emp = getEmployeeById(id);
         employeeRepository.delete(emp);
+    }
+
+    public Employee updateProfile(Long id, UpdateProfileRequestDTO request) {
+        Employee emp = getEmployeeById(id);
+        emp.setFirst_name(request.getFirst_name());
+        emp.setLast_name(request.getLast_name());
+        emp.setDepartment(request.getDepartment());
+        emp.setPosition(request.getPosition());
+        return employeeRepository.save(emp);
     }
 }
