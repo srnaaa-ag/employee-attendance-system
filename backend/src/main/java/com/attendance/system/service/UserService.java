@@ -26,4 +26,8 @@ public class UserService implements UserDetailsService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
     }
+
+    public User save(User user) {
+        return userRepository.save(user);
+    }
 }
