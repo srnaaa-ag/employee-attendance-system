@@ -29,7 +29,7 @@ export function getNavGroups(role) {
     };
   }
 
-  if (role === "ADMIN") {
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
     return {
       primary: adminNavItems,
       secondary: [],

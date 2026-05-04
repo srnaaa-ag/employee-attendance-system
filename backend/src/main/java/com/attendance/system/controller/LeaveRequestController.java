@@ -136,11 +136,12 @@ public class LeaveRequestController {
     @PatchMapping("/{id}/approve")
     public ResponseEntity<?> approveLeaveRequest(
             @PathVariable Long id,
+            @Valid @RequestBody(required = false) LeaveRequestReviewDTO body,
             Authentication authentication) {
         try {
             User user = (User) authentication.getPrincipal();
-            LeaveRequest approved = leaveRequestService.approveLeaveRequest(id, user.getId());
-            return ResponseEntity.ok(toResponseDTO(approved));
+            String comment = body != null ? body.getAdminComment() : null;
+            LeaveRequest approved = leaveRequestService.approveLeaveRequest(id, user.getId(), comment);            return ResponseEntity.ok(toResponseDTO(approved));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
@@ -151,11 +152,12 @@ public class LeaveRequestController {
     @PatchMapping("/{id}/reject")
     public ResponseEntity<?> rejectLeaveRequest(
             @PathVariable Long id,
+            @Valid @RequestBody(required = false) LeaveRequestReviewDTO body,
             Authentication authentication) {
         try {
             User user = (User) authentication.getPrincipal();
-            LeaveRequest rejected = leaveRequestService.rejectLeaveRequest(id, user.getId());
-            return ResponseEntity.ok(toResponseDTO(rejected));
+            String comment = body != null ? body.getAdminComment() : null;
+            LeaveRequest rejected = leaveRequestService.rejectLeaveRequest(id, user.getId(), comment);            return ResponseEntity.ok(toResponseDTO(rejected));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalStateException e) {
@@ -203,6 +205,7 @@ public class LeaveRequestController {
                         : null)
                 .reviewedById(request.getReviewedBy() != null ? request.getReviewedBy().getId() : null)
                 .reviewedByName(request.getReviewedBy() != null ? request.getReviewedBy().getUsername() : null)
+                .adminComment(request.getAdminComment())
                 .build();
     }
 }

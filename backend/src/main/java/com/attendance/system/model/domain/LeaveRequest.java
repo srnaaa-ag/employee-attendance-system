@@ -48,4 +48,7 @@ public class LeaveRequest {
     @ManyToOne
     @JoinColumn(name = "reviewed_by")
     private User reviewedBy;
+
+    @Column(name = "admin_comment", length = 500)
+    private String adminComment;
 }

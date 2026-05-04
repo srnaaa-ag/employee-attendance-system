@@ -29,4 +29,6 @@ public class LeaveRequestResponseDTO {
     
     private Long reviewedById;
     private String reviewedByName;
+
+    private String adminComment;
 }
