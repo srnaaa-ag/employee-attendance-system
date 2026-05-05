@@ -54,8 +54,13 @@ public class EmployeeService {
         Employee emp = getEmployeeById(id);
         emp.setFirst_name(request.getFirst_name());
         emp.setLast_name(request.getLast_name());
-        emp.setDepartment(request.getDepartment());
-        emp.setPosition(request.getPosition());
+
+        User user = emp.getUser();
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        user.setProfilePicture(request.getProfilePicture());
+        userService.save(user);
+
         return employeeRepository.save(emp);
     }
 }
