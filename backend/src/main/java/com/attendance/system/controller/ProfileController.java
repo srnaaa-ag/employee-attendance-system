@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('EMPLOYEE')")
+@PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN')")
 public class ProfileController {
 
     private final EmployeeService employeeService;
