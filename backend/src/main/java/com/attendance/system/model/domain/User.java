@@ -30,6 +30,11 @@ public class User implements UserDetails {
     private Role role;
     private Boolean is_active;
 
+    private String phone;
+    @Column(columnDefinition = "TEXT")
+    private String profilePicture;
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
