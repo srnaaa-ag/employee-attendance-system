@@ -7,10 +7,7 @@ export default function Profile() {
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [message, setMessage] = useState("");
-<<<<<<< Updated upstream
-=======
     const [imagePreview, setImagePreview] = useState(null);
->>>>>>> Stashed changes
 
     useEffect(() => {
         getMyProfile().then((data) => {
@@ -18,11 +15,6 @@ export default function Profile() {
             setForm({
                 first_name: data.first_name,
                 last_name: data.last_name,
-<<<<<<< Updated upstream
-                department: data.department,
-                position: data.position,
-            });
-=======
                 email: data.user?.email,
                 phone: data.user?.phone || "",
                 profilePicture: data.user?.profilePicture || null,
@@ -30,7 +22,6 @@ export default function Profile() {
             if (data.user?.profilePicture) {
                 setImagePreview(data.user.profilePicture);
             }
->>>>>>> Stashed changes
         });
     }, []);
 
@@ -38,8 +29,6 @@ export default function Profile() {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-<<<<<<< Updated upstream
-=======
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -51,13 +40,24 @@ export default function Profile() {
         reader.readAsDataURL(file);
     };
 
->>>>>>> Stashed changes
     const handleSave = async () => {
-        const updated = await updateMyProfile(form);
-        setProfile(updated);
-        setEditing(false);
-        setMessage("Профилот е успешно ажуриран!");
-        setTimeout(() => setMessage(""), 3000);
+        try {
+            const updated = await updateMyProfile(form);
+            setProfile(updated);
+            setForm({
+                first_name: updated.first_name,
+                last_name: updated.last_name,
+                email: updated.user?.email,
+                phone: updated.user?.phone || "",
+                profilePicture: updated.user?.profilePicture || null,
+            });
+            setEditing(false);
+            setMessage("Профилот е успешно ажуриран!");
+            setTimeout(() => setMessage(""), 3000);
+        } catch (err) {
+            setMessage("Грешка при зачувување!");
+            setTimeout(() => setMessage(""), 3000);
+        }
     };
 
     if (!profile) return <p>Се вчитува...</p>;
@@ -66,28 +66,9 @@ export default function Profile() {
         <div className="profile">
             <div className="profile__card">
                 <h2 className="profile__titlebar">Мој профил</h2>
-
                 <div className="profile__body">
                     {message && <div className="profile__success">{message}</div>}
 
-<<<<<<< Updated upstream
-                    {["first_name", "last_name", "department", "position"].map((field) => (
-                        <div key={field} className="profile__field">
-              <span className="profile__label">
-                {field === "first_name" ? "Име" :
-                    field === "last_name" ? "Презиме" :
-                        field === "department" ? "Оддел" : "Позиција"}
-              </span>
-                            {editing ? (
-                                <input
-                                    className="profile__input"
-                                    name={field}
-                                    value={form[field]}
-                                    onChange={handleChange}
-                                />
-                            ) : (
-                                <p className="profile__value">{profile[field]}</p>
-=======
                     <div className="profile__avatar-section">
                         <div className="profile__avatar">
                             {imagePreview ? (
@@ -101,12 +82,7 @@ export default function Profile() {
                         {editing && (
                             <label className="profile__upload-btn">
                                 Промени слика
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    style={{ display: "none" }}
-                                />
+                                <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
                             </label>
                         )}
                     </div>
@@ -120,34 +96,17 @@ export default function Profile() {
                         <div key={key} className="profile__field">
                             <span className="profile__label">{label}</span>
                             {editing ? (
-                                <input
-                                    className="profile__input"
-                                    name={key}
-                                    value={form[key]}
-                                    onChange={handleChange}
-                                />
+                                <input className="profile__input" name={key} value={form[key]} onChange={handleChange} />
                             ) : (
                                 <p className="profile__value">
                                     {key === "email" ? profile.user?.email :
                                         key === "phone" ? (profile.user?.phone || "—") :
                                             profile[key]}
                                 </p>
->>>>>>> Stashed changes
                             )}
                         </div>
                     ))}
 
-<<<<<<< Updated upstream
-                    <div className="profile__field">
-                        <span className="profile__label">Датум на вработување</span>
-                        <p className="profile__value">{profile.employment_date}</p>
-                    </div>
-
-                    <div className="profile__field">
-                        <span className="profile__label">Е-пошта</span>
-                        <p className="profile__value">{profile.user?.email}</p>
-                    </div>
-=======
                     {[
                         { key: "department", label: "Оддел" },
                         { key: "position", label: "Позиција" },
@@ -158,22 +117,15 @@ export default function Profile() {
                             <p className="profile__value profile__value--readonly">{profile[key]}</p>
                         </div>
                     ))}
->>>>>>> Stashed changes
 
                     <div className="profile__actions">
                         {editing ? (
                             <>
-                                <button className="profile__btn profile__btn--primary" onClick={handleSave}>
-                                    Зачувај
-                                </button>
-                                <button className="profile__btn profile__btn--outline" onClick={() => setEditing(false)}>
-                                    Откажи
-                                </button>
+                                <button className="profile__btn profile__btn--primary" onClick={handleSave}>Зачувај</button>
+                                <button className="profile__btn profile__btn--outline" onClick={() => setEditing(false)}>Откажи</button>
                             </>
                         ) : (
-                            <button className="profile__btn profile__btn--primary" onClick={() => setEditing(true)}>
-                                Уреди профил
-                            </button>
+                            <button className="profile__btn profile__btn--primary" onClick={() => setEditing(true)}>Уреди профил</button>
                         )}
                     </div>
                 </div>

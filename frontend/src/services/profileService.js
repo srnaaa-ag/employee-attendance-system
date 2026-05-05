@@ -10,13 +10,9 @@ export const updateMyProfile = async (data) => {
         method: "PUT",
         body: JSON.stringify(data),
     });
-<<<<<<< Updated upstream
-    return response.json();
-=======
     if (!response.ok) {
         throw new Error("Update failed");
     }
     const text = await response.text();
     return text ? JSON.parse(text) : {};
->>>>>>> Stashed changes
 };
