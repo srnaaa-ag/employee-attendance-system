@@ -7,6 +7,7 @@ import LeaveRequests from "./pages/LeaveRequests.jsx";
 import Employees from "./pages/Employees.jsx";
 import Reports from "./pages/Reports.jsx";
 import Login from "./pages/Login.jsx";
+import Profile from "./pages/Profile.jsx";
 import { isAuthenticated } from "./services/authService.js";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
                 <Route path="/leave-requests" element={<LeaveRequests />} />
                 <Route path="/employees" element={<Employees />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/profile" element={<Profile />} />  
             </Route>
         </Route>
         <Route path="*" element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}/>

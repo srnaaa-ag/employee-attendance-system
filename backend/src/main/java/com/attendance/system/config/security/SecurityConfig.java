@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
 
                         // ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
