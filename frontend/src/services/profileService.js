@@ -13,6 +13,5 @@ export const updateMyProfile = async (data) => {
     if (!response.ok) {
         throw new Error("Update failed");
     }
-    const text = await response.text();
-    return text ? JSON.parse(text) : {};
+    return response.json();
 };
