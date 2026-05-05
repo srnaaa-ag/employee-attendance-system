@@ -5,6 +5,8 @@ export const employeeNavItems = [
   { to: "/dashboard", label: "Контролна табла", icon: "home" },
   { to: "/attendance", label: "Евиденција", icon: "idcard" },
   { to: "/leave-requests", label: "Барање за отсуство", icon: "calendar" },
+  { to: "/correction-requests", label: "Барање за корекција", icon: "edit" },
+  { to: "/profile", label: "Мој профил", icon: "user" },
 ];
 
 /** @type {NavItem[]} */
@@ -12,6 +14,7 @@ export const adminNavItems = [
   { to: "/dashboard", label: "Контролна табла", icon: "home" },
   { to: "/attendance", label: "Евиденција", icon: "idcard" },
   { to: "/leave-requests", label: "Барање за отсуство", icon: "calendar" },
+  { to: "/correction-requests", label: "Барање за корекција", icon: "edit" },
   { to: "/employees", label: "Вработени", icon: "users" },
   { to: "/reports", label: "Извештаи", icon: "csv" },
 ];
@@ -40,3 +43,4 @@ export function getNavGroups(role) {
     secondary: [],
   };
 }
+

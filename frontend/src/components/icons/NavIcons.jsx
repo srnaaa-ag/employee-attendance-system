@@ -192,6 +192,28 @@ export function IconUserCircle(props) {
     p
   );
 }
+export function IconEdit(props) {
+    const p = { ...defaultProps, ...props };
+    return wrapSvg(
+        <>
+            <path
+                d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="M17.5 2.5a2 2 0 0 1 2.83 2.83L12 13.5l-4 1 1-4 8.5-8z"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </>,
+        p
+    );
+}
 
 const iconMap = {
   home: IconHome,
@@ -200,6 +222,8 @@ const iconMap = {
   lock: IconLock,
   users: IconUsers,
   csv: IconCsv,
+  user: IconUserCircle,
+  edit: IconEdit
 };
 
 export function NavIcon({ name, ...rest }) {

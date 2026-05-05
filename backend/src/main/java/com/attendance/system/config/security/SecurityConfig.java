@@ -72,6 +72,21 @@ public class SecurityConfig {
                         // SUPER_ADMIN
                         .requestMatchers(HttpMethod.DELETE, "/api/leave-requests/**").hasRole("SUPER_ADMIN")
 
+
+                        // EMPLOYEE - correction requests
+                        .requestMatchers(HttpMethod.POST, "/api/correction-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+
+                        // ADMIN - correction requests
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/approve").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // SUPER_ADMIN - correction requests
+                        .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**").hasRole("SUPER_ADMIN")
+
                         // fallback
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
