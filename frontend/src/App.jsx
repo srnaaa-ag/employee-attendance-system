@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout.jsx";
+import GuestOnly from "./components/GuestOnly.jsx";
 import ProtectedLayout from "./components/ProtectedLayout.jsx";
+import RequireAdmin from "./components/RequireAdmin.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import LeaveRequests from "./pages/LeaveRequests.jsx";
@@ -13,19 +15,29 @@ import { isAuthenticated } from "./services/authService.js";
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedLayout />}>
-            <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/leave-requests" element={<LeaveRequests />} />
-                <Route path="/employees" element={<Employees />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/profile" element={<Profile />} />  
-            </Route>
+      <Route element={<GuestOnly />}>
+        <Route path="/login" element={<Login />} />
+      </Route>
+
+      <Route element={<ProtectedLayout />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/leave-requests" element={<LeaveRequests />} />
+          <Route path="/profile" element={<Profile />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/reports" element={<Reports />} />
+          </Route>
         </Route>
-        <Route path="*" element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}/>
+      </Route>
+
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
+      />
     </Routes>
   );
 }

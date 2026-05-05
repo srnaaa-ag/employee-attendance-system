@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { IconLock, IconUserCircle } from "../components/icons/NavIcons.jsx";
 import UserAvatar from "../components/icons/UserAvatar.jsx";
-import { isAuthenticated, setRole, setToken, setName } from "../services/authService.js";
+import { setRole, setToken, setName } from "../services/authService.js";
 import { login } from "../services/api.js";
 import "./Login.css";
 
@@ -13,10 +13,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  if (isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();

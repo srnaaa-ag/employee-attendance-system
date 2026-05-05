@@ -1,6 +1,4 @@
 import { useState, useCallback } from "react";
-import { Navigate } from "react-router-dom";
-import { isAdmin } from "../services/authService";
 import EmployeeEditModal from "../components/EmployeeEditModal.jsx";
 import "./Employees.css";
 
@@ -99,9 +97,6 @@ const INITIAL = [
 
 
 export default function Employees() {
-    if (!isAdmin()) {
-        return <Navigate to="/dashboard" replace />;
-    }
     const [employees, setEmployees] = useState(() =>
         INITIAL.map((e) => ({
             ...e,
