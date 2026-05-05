@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout.jsx";
+import ProtectedLayout from "./components/ProtectedLayout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import LeaveRequests from "./pages/LeaveRequests.jsx";
