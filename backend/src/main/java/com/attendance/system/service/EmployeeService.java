@@ -13,6 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
+    private final UserService userService;
 
     public List<Employee> getAllEmployees() {
         return employeeRepository.findAll();
@@ -49,6 +50,7 @@ public class EmployeeService {
         Employee emp = getEmployeeById(id);
         employeeRepository.delete(emp);
     }
+
 
     public Employee updateProfile(Long id, UpdateProfileRequestDTO request) {
         Employee emp = getEmployeeById(id);
