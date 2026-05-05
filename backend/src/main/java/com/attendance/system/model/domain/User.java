@@ -32,9 +32,8 @@ public class User implements UserDetails {
     private String phone;
     private String profilePicture;
 
-    private String phone;
+
     @Column(columnDefinition = "TEXT")
-    private String profilePicture;
 
 
     @Override
