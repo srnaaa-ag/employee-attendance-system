@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 
 import "./Page.css";
-import { createLeaveRequest, getRequestsForLoggedInEmployee } from "../services/leaveRequest";
+import {
+  createLeaveRequest,
+  getRequestsForLoggedInEmployee,
+  getAllLeaveRequests,
+  approveLeaveRequest,
+  rejectLeaveRequest,
+} from "../services/leaveRequest";
 import { isAdmin } from "../services/authService";
 
 const STATUS_MK = {
@@ -45,6 +51,8 @@ const DEMO_PENDING_REQUESTS = [
 ];
 
 export default function LeaveRequests() {
+  const [allRequests, setAllRequests] = useState([]);
+  const [adminComments, setAdminComments] = useState({});
   const [form, setForm] = useState({
     leaveType: "ANNUAL",
     startDate: "",
@@ -59,6 +67,13 @@ export default function LeaveRequests() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleAdminCommentChange = (id, value) => {
+    setAdminComments((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
   const loadRequests = async () => {
     try {
       const data = await getRequestsForLoggedInEmployee();
@@ -69,8 +84,43 @@ export default function LeaveRequests() {
   };
 
   useEffect(() => {
-    loadRequests();
+    if (admin) {
+      loadAllRequests(); // 👈 admin gets ALL
+    } else {
+      loadRequests(); // 👈 employee gets OWN
+    }
   }, []);
+
+  const loadAllRequests = async () => {
+    try {
+      const data = await getAllLeaveRequests();
+      setAllRequests(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading all requests:", err);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      const comment = adminComments[id];
+      await approveLeaveRequest(id, comment);
+
+      await loadAllRequests(); // refresh
+    } catch (err) {
+      console.error("Approve error:", err);
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      const comment = adminComments[id];
+      await rejectLeaveRequest(id, comment);
+
+      await loadAllRequests(); // refresh
+    } catch (err) {
+      console.error("Reject error:", err);
+    }
+  };
 
   const handleSubmit = async () => {
     try {
@@ -112,7 +162,11 @@ export default function LeaveRequests() {
           <h3>Ново барање</h3>
 
           <label>Тип</label>
-          <select name="leaveType" value={form.leaveType} onChange={handleChange}>
+          <select
+            name="leaveType"
+            value={form.leaveType}
+            onChange={handleChange}
+          >
             <option value="ANNUAL">Годишен одмор</option>
             <option value="SICK_LEAVE">Боледување</option>
           </select>
@@ -120,11 +174,21 @@ export default function LeaveRequests() {
           <div className="row">
             <div>
               <label>Од датум</label>
-              <input type="date" name="startDate" value={form.startDate} onChange={handleChange} />
+              <input
+                type="date"
+                name="startDate"
+                value={form.startDate}
+                onChange={handleChange}
+              />
             </div>
             <div>
               <label>До датум</label>
-              <input type="date" name="endDate" value={form.endDate} onChange={handleChange} />
+              <input
+                type="date"
+                name="endDate"
+                value={form.endDate}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
@@ -168,9 +232,13 @@ export default function LeaveRequests() {
                     </td>
                     <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
                     <td>
-                      <span className={statusClass(r.status)}>{STATUS_MK[r.status] ?? r.status}</span>
+                      <span className={statusClass(r.status)}>
+                        {STATUS_MK[r.status] ?? r.status}
+                      </span>
                     </td>
-                    <td className="leave-table__comment">{r.adminComment?.trim() ? r.adminComment : "—"}</td>
+                    <td className="leave-table__comment">
+                      {r.adminComment?.trim() ? r.adminComment : "—"}
+                    </td>
                   </tr>
                 ))
               )}
@@ -183,11 +251,13 @@ export default function LeaveRequests() {
         <div className="card leave-admin-card leave-admin-card--demo">
           <h3>Барања во исчекување (администратор)</h3>
           <p className="leave-demo-banner">
-            Демо преглед на интерфејс — пример податоци, без база. Копчињата се исклучени.
+            Демо преглед на интерфејс — пример податоци, без база. Копчињата се
+            исклучени.
           </p>
           <p className="leave-admin-hint">
-            При одобрување или одбивање можеш да додадеш незадолжителен коментар (макс. {MAX_ADMIN_COMMENT}{" "}
-            знаци). Вработениот го гледа во табелата „Мои барања“ и во известувањата.
+            При одобрување или одбивање можеш да додадеш незадолжителен коментар
+            (макс. {MAX_ADMIN_COMMENT} знаци). Вработениот го гледа во табелата
+            „Мои барања“ и во известувањата.
           </p>
           <table className="leave-table leave-table--wide">
             <thead>
@@ -201,34 +271,52 @@ export default function LeaveRequests() {
               </tr>
             </thead>
             <tbody>
-              {DEMO_PENDING_REQUESTS.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.employeeName}</td>
-                  <td>
-                    {formatDate(r.startDate)} – {formatDate(r.endDate)}
-                  </td>
-                  <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-                  <td className="leave-table__comment">{r.reason?.trim() ? r.reason : "—"}</td>
-                  <td>
-                    <textarea
-                      className="leave-admin-comment-input"
-                      rows={2}
-                      maxLength={MAX_ADMIN_COMMENT}
-                      placeholder="Образложение за вработениот (опционално)"
-                      defaultValue=""
-                      aria-label={`Демо коментар за ${r.employeeName}`}
-                    />
-                  </td>
-                  <td className="leave-admin-actions">
-                    <button type="button" className="primary-btn leave-btn-approve" disabled title="Демо">
-                      Одобри
-                    </button>
-                    <button type="button" className="secondary-btn leave-btn-reject" disabled title="Демо">
-                      Одбиј
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {allRequests
+                .filter((r) => r.status === "PENDING")
+                .map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.employeeName}</td>
+
+                    <td>
+                      {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                    </td>
+
+                    <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
+
+                    <td className="leave-table__comment">
+                      {r.reason?.trim() ? r.reason : "—"}
+                    </td>
+
+                    <td>
+                      <textarea
+                        className="leave-admin-comment-input"
+                        rows={2}
+                        maxLength={MAX_ADMIN_COMMENT}
+                        placeholder="Образложение за вработениот (опционално)"
+                        value={adminComments[r.id] || ""}
+                        onChange={(e) =>
+                          handleAdminCommentChange(r.id, e.target.value)
+                        }
+                      />
+                    </td>
+
+                    <td className="leave-admin-actions">
+                      <button
+                        className="primary-btn leave-btn-approve"
+                        onClick={() => handleApprove(r.id)}
+                      >
+                        Одобри
+                      </button>
+
+                      <button
+                        className="secondary-btn leave-btn-reject"
+                        onClick={() => handleReject(r.id)}
+                      >
+                        Одбиј
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

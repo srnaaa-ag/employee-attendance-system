@@ -1,5 +1,6 @@
 package com.attendance.system.controller;
 
+import com.attendance.system.dto.EmployeeDTO;
 import com.attendance.system.model.domain.Employee;
 import com.attendance.system.service.EmployeeService;
 import jakarta.validation.Valid;
@@ -14,12 +15,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
 public class EmployeeController {
     private final EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<List<Employee>> getAllEmployees() {
+    public ResponseEntity<List<EmployeeDTO>> getAllEmployees() {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 

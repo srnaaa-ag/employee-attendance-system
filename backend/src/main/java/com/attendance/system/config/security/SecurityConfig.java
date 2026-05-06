@@ -88,6 +88,13 @@ public class SecurityConfig {
                         // SUPER_ADMIN - correction requests
                         .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**").hasRole("SUPER_ADMIN")
 
+                        // EMPLOYEES (ADMIN only)
+                        .requestMatchers(HttpMethod.GET, "/api/employees").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/employees").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
                         // fallback
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
@@ -104,7 +111,7 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
 
         corsConfiguration.setAllowedOrigins(origins); 
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
 
