@@ -1,0 +1,131 @@
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: #ffffff;
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.75rem 1.15rem 1.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar__avatar {
+  flex-shrink: 0;
+  margin-bottom: 0.85rem;
+}
+
+.sidebar__pr{
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.sidebar__profile-role {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 0.65rem 1rem;
+  flex: 1;
+}
+
+.sidebar__sep {
+  height: 1px;
+  margin: 0.5rem 0.35rem;
+  background: var(--color-border);
+  border: none;
+}
+
+.sidebar__link {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  transition: background var(--transition), color var(--transition);
+}
+
+.sidebar__link-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sidebar__icon {
+  flex-shrink: 0;
+  color: currentColor;
+  opacity: 0.92;
+}
+
+.sidebar__link:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.sidebar__link--active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.sidebar__link--active .sidebar__icon {
+  opacity: 1;
+  color: #ffffff;
+}
+
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+
+.sidebar__logout:hover {
+  background: var(--color-bg);
+}
+
+.sidebar__logout .sidebar__icon {
+  color: currentColor;
+  opacity: 0.9;
+}
+
+.sidebar__meta {
+  margin-top: auto;
+  padding: 1rem 0.85rem 1.15rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+  text-align: center;
+}

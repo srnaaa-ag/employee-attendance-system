@@ -35,33 +35,71 @@
 3. Инсталирај dependencies
 
 ---
+<<<<<<< HEAD
 
 ## Git Workflow
 
 ### 1. Клонирање на проектот
 
+=======
+
+## Branch правила
+
+* `main` – стабилна верзија
+* `develop` – главна работна гранка
+* `feature/...` – гранки за функционалности
+
+---
+
+## Git Workflow
+
+Репозиториумот е поставен и workflow е дефиниран.
+
+### Важно
+
+* не се работи директно на `main`
+* не се работи директно на `develop`
+* секој член работи во своја `feature/...` гранка
+* pull request се прави кон `develop`
+
+---
+
+### Чекори за работа
+
+1. Клонирај го репозиториумот:
+
+>>>>>>> origin/develop
 ```bash
 git clone URL-OD-REPO
 cd employee-attendance-system
 ```
 
+<<<<<<< HEAD
 ---
 
 ### 2. Префрлување на develop гранка
+=======
+2. Префрли се на develop:
+>>>>>>> origin/develop
 
 ```bash
 git checkout develop
 git pull origin develop
 ```
 
+<<<<<<< HEAD
 ---
 
 ### 3. Креирање на feature гранка
+=======
+3. Креирај своја гранка:
+>>>>>>> origin/develop
 
 ```bash
 git checkout -b feature/ime-na-task
 ```
 
+<<<<<<< HEAD
 Примери:
 
 ```bash
@@ -74,20 +112,28 @@ feature/employee-module
 ---
 
 ### 4. Работа на код
+=======
+4. Работи на кодот, потоа:
+>>>>>>> origin/develop
 
 ```bash
 git add .
 git commit -m "kratok opis na promenite"
 ```
 
+<<<<<<< HEAD
 ---
 
 ### 5. Пуштање на GitHub
+=======
+5. Пушти ја гранката:
+>>>>>>> origin/develop
 
 ```bash
 git push -u origin feature/ime-na-task
 ```
 
+<<<<<<< HEAD
 ---
 
 ### 6. Креирање Pull Request
@@ -123,3 +169,11 @@ git push -u origin feature/ime-na-task
 | `main`        | стабилна верзија  |
 | `develop`     | главна работна    |
 | `feature/...` | работа по таскови |
+=======
+6. На GitHub направи Pull Request:
+
+* base: `develop`
+* compare: `feature/ime-na-task`
+
+7. По одобрување, гранката се merge-ира во `develop`
+>>>>>>> origin/develop
