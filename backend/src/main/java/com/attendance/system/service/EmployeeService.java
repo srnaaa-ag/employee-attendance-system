@@ -1,5 +1,6 @@
 package com.attendance.system.service;
 
+import com.attendance.system.dto.EmployeeDTO;
 import com.attendance.system.dto.UpdateProfileRequestDTO;
 import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.User;
@@ -15,8 +16,11 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final UserService userService;
 
-    public List<Employee> getAllEmployees() {
-        return employeeRepository.findAll();
+    public List<EmployeeDTO> getAllEmployees() {
+        return employeeRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 
     public Employee getEmployeeById(Long id) {
@@ -64,5 +68,18 @@ public class EmployeeService {
         userService.save(user);
 
         return employeeRepository.save(emp);
+    }
+
+    public EmployeeDTO mapToDTO(Employee e) {
+        return new EmployeeDTO(
+                e.getId(),
+                e.getFirst_name(),
+                e.getLast_name(),
+                e.getDepartment(),
+                e.getPosition(),
+                e.getEmployment_date(),
+                e.getUser().getEmail(),
+                e.getUser().getRole().name()
+        );
     }
 }
