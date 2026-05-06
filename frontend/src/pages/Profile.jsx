@@ -4,25 +4,43 @@ import "./Profile.css";
 
 export default function Profile() {
     const [profile, setProfile] = useState(null);
+    const [loadState, setLoadState] = useState("loading");
+    const [loadError, setLoadError] = useState("");
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [message, setMessage] = useState("");
     const [imagePreview, setImagePreview] = useState(null);
 
     useEffect(() => {
-        getMyProfile().then((data) => {
-            setProfile(data);
-            setForm({
-                first_name: data.first_name,
-                last_name: data.last_name,
-                email: data.user?.email,
-                phone: data.user?.phone || "",
-                profilePicture: data.user?.profilePicture || null,
+        let cancelled = false;
+        setLoadState("loading");
+        setLoadError("");
+
+        getMyProfile()
+            .then((data) => {
+                if (cancelled) return;
+                setProfile(data);
+                setForm({
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    email: data.user?.email,
+                    phone: data.user?.phone || "",
+                    profilePicture: data.user?.profilePicture || null,
+                });
+                if (data.user?.profilePicture) {
+                    setImagePreview(data.user.profilePicture);
+                }
+                setLoadState("ready");
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                setLoadError(err?.message || "Неуспешно вчитување на профилот.");
+                setLoadState("error");
             });
-            if (data.user?.profilePicture) {
-                setImagePreview(data.user.profilePicture);
-            }
-        });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleChange = (e) => {
@@ -60,7 +78,27 @@ export default function Profile() {
         }
     };
 
-    if (!profile) return <p>Се вчитува...</p>;
+    if (loadState === "loading") {
+        return <p className="profile__status">Се вчитува...</p>;
+    }
+
+    if (loadState === "error") {
+        return (
+            <div className="profile profile--status">
+                <div className="profile__card profile__card--message">
+                    <p className="profile__error-text">{loadError}</p>
+                    <p className="profile__hint">
+                        Провери дали backend работи на <code>http://localhost:8080</code>, дали си најавен и дали
+                        корисникот има поврзан запис за вработен во базата.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!profile) {
+        return <p className="profile__status">Нема податоци за профилот.</p>;
+    }
 
     return (
         <div className="profile">

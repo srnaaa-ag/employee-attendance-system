@@ -13,37 +13,37 @@ import Profile from "./pages/Profile.jsx";
 import CorrectionRequests from "./pages/CorrectionRequests.jsx";
 import { isAuthenticated } from "./services/authService.js";
 
-
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-        <Route element={<AppLayout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/attendance" element={<Attendance />} />
-        <Route path="/leave-requests" element={<LeaveRequests />} />
-        <Route path="/employees" element={<Employees />} />
-        <Route path="/reports" element={<Reports />} />
+      <Route element={<GuestOnly />}>
+        <Route path="/login" element={<Login />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<ProtectedLayout />}>
-            <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/leave-requests" element={<LeaveRequests />} />
-                <Route path="/employees" element={<Employees />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/correction-requests" element={<CorrectionRequests />} />
-            </Route>
+
+      <Route element={<ProtectedLayout />}>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/leave-requests" element={<LeaveRequests />} />
+          <Route path="/correction-requests" element={<CorrectionRequests />} />
+          <Route path="/profile" element={<Profile />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/reports" element={<Reports />} />
+          </Route>
         </Route>
       </Route>
 
       <Route
         path="*"
-        element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
+        element={
+          <Navigate
+            to={isAuthenticated() ? "/dashboard" : "/login"}
+            replace
+          />
+        }
       />
     </Routes>
   );
