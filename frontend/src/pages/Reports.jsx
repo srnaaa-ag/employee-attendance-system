@@ -1,6 +1,4 @@
 import {useState, useMemo} from "react";
-import {Navigate} from "react-router-dom";
-import {isAdmin} from "../services/authService";
 import "./Reports.css";
 
 const MOCK_ROWS = [
@@ -26,10 +24,6 @@ function downloadCsv(filename, rows, fromDate, toDate, deptLabel) {
 }
 
 export default function Reports() {
-    if (!isAdmin()) {
-        return <Navigate to="/dashboard" replace/>;
-    }
-
     const [fromDate, setFromDate] = useState("2026-04-01");
     const [toDate, setToDate] = useState("2026-04-08");
     const [department, setDepartment] = useState("all");

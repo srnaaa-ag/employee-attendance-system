@@ -105,3 +105,29 @@
     border-radius: var(--radius-md);
     font-size: 0.9rem;
 }
+
+.profile__status {
+    margin: 1rem 0;
+    color: var(--color-text-muted, #5c6b7a);
+}
+
+.profile--status .profile__card--message {
+    padding: 1.35rem;
+}
+
+.profile__error-text {
+    margin: 0 0 0.75rem;
+    color: #842029;
+    font-weight: 600;
+}
+
+.profile__hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #5c6b7a);
+    line-height: 1.45;
+}
+
+.profile__hint code {
+    font-size: 0.85em;
+}

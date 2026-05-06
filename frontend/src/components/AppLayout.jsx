@@ -8,11 +8,12 @@ const routeTitles = {
     "/leave-requests": "Барање за отсуство",
     "/employees": "Вработени",
     "/reports": "Извештаи",
+    "/profile": "Мој профил",
 };
 
 export default function AppLayout() {
     const {pathname} = useLocation();
-    const role = getRole() ?? "employee";
+    const role = getRole() ?? "EMPLOYEE";
     const isDashboard = pathname === "/dashboard";
     const isAttendance = pathname === "/attendance";
     const useDashHeader = isDashboard || isAttendance;

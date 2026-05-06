@@ -11,19 +11,50 @@ import {
 import { isAdmin } from "../services/authService";
 
 const STATUS_MK = {
-    APPROVED: "Одобрено",
-    REJECTED: "Одбиено",
-    PENDING: "Во исчекување",
-    CANCELLED: "Откажано",
+  APPROVED: "Одобрено",
+  REJECTED: "Одбиено",
+  PENDING: "Во исчекување",
+  CANCELLED: "Откажано",
 };
 const LEAVE_TYPE_MK = {
-    ANNUAL: "Годишен одмор",
-    SICK_LEAVE: "Боледување",
+  ANNUAL: "Годишен одмор",
+  SICK_LEAVE: "Боледување",
 };
 const MAX_ADMIN_COMMENT = 500;
 
 export default function LeaveRequests() {
-    const [form, setForm] = useState({
+  const [form, setForm] = useState({
+    leaveType: "ANNUAL",
+    startDate: "",
+    endDate: "",
+    reason: "",
+  });
+
+  const [requests, setRequests] = useState([]);
+  const admin = isAdmin();
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const loadRequests = async () => {
+    try {
+      const data = await getRequestsForLoggedInEmployee();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading requests:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const handleSubmit = async () => {
+    try {
+      await createLeaveRequest(form);
+      await loadRequests();
+      setForm({
         leaveType: "ANNUAL",
         startDate: "",
         endDate: "",
@@ -135,12 +166,13 @@ export default function LeaveRequests() {
         }
         return String(dateStr);
     }
+  };
 
-    function statusClass(status) {
-        if (status === "APPROVED") return "status approved";
-        if (status === "REJECTED") return "status rejected";
-        if (status === "CANCELLED") return "status cancelled";
-        return "status pending";
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    if (typeof dateStr === "string" && dateStr.includes("-")) {
+      const [year, month, day] = dateStr.split("-");
+      return `${day}.${month}.${year}`;
     }
 
     return (
@@ -222,6 +254,20 @@ export default function LeaveRequests() {
                     </table>
                 </div>
             </div>
+          </div>
+
+          <label>Коментар</label>
+          <textarea
+            name="reason"
+            value={form.reason}
+            placeholder="Приложи објаснување"
+            onChange={handleChange}
+          />
+
+          <button type="button" className="primary-btn" onClick={handleSubmit}>
+            Поднеси барање
+          </button>
+        </div>
 
             {admin ? (
                 <div className="card leave-admin-card">

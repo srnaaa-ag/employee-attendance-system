@@ -22,13 +22,20 @@ public class ProfileController {
     @GetMapping
     public ResponseEntity<Employee> getMyProfile(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(employeeService.findByUser(user));
+        Employee employee = employeeService.findByUser(user);
+        if (employee == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(employee);
     }
 
     @PutMapping
     public ResponseEntity<Employee> updateMyProfile(Authentication authentication, @RequestBody UpdateProfileRequestDTO request) {
         User user = (User) authentication.getPrincipal();
         Employee emp = employeeService.findByUser(user);
+        if (emp == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(employeeService.updateProfile(emp.getId(), request));
     }
 }

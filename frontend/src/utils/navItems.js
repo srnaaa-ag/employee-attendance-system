@@ -1,4 +1,4 @@
-/** @typedef {{ to: string; label: string; icon: string }} NavItem */
+/** @typedef {{ to: string; label: string; icon: string; end?: boolean }} NavItem */
 
 /** @type {NavItem[]} */
 export const employeeNavItems = [
@@ -6,7 +6,6 @@ export const employeeNavItems = [
   { to: "/attendance", label: "Евиденција", icon: "idcard" },
   { to: "/leave-requests", label: "Барање за отсуство", icon: "calendar" },
   { to: "/correction-requests", label: "Барање за корекција", icon: "edit" },
-  { to: "/profile", label: "Мој профил", icon: "user" },
 ];
 
 /** @type {NavItem[]} */
@@ -19,28 +18,32 @@ export const adminNavItems = [
   { to: "/reports", label: "Извештаи", icon: "csv" },
 ];
 
+const profileNavItem = { to: "/profile", label: "Профил", icon: "user", end: true };
+
 /**
- * @param {"admin" | "employee" | null} role
+ * @param {"EMPLOYEE" | "ADMIN" | "SUPER_ADMIN" | null | undefined} role
  * @returns {{ primary: NavItem[]; secondary: NavItem[] }}
  */
 export function getNavGroups(role) {
-  if (role === "EMPLOYEE") {
+  const effectiveRole = role ?? "EMPLOYEE";
+
+  if (effectiveRole === "EMPLOYEE") {
     return {
       primary: employeeNavItems,
-      secondary: [],
+      secondary: [profileNavItem],
     };
   }
 
-  if (role === "ADMIN") {
+  if (effectiveRole === "ADMIN" || effectiveRole === "SUPER_ADMIN") {
     return {
       primary: adminNavItems,
-      secondary: [],
+      secondary: [profileNavItem],
     };
   }
 
   return {
-    primary: [],
-    secondary: [],
+    primary: employeeNavItems,
+    secondary: [profileNavItem],
   };
 }
 

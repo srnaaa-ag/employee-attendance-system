@@ -42,7 +42,7 @@ export default function Sidebar() {
 
             <nav className="sidebar__nav" aria-label="Мени">
                 {primary.map((item) => (
-                    <NavLink key={item.to} to={item.to} className={linkClass} end={item.to === "/"}>
+                    <NavLink key={item.to} to={item.to} className={linkClass} end={item.end === true}>
             <span className="sidebar__link-inner">
               <NavIcon name={item.icon} size={20} className="sidebar__icon"/>
                 {item.label}
@@ -54,7 +54,7 @@ export default function Sidebar() {
                     <>
                         <div className="sidebar__sep" role="separator"/>
                         {secondary.map((item) => (
-                            <NavLink key={item.to} to={item.to} className={linkClass}>
+                            <NavLink key={item.to} to={item.to} className={linkClass} end={item.end === true}>
                 <span className="sidebar__link-inner">
                   <NavIcon name={item.icon} size={20} className="sidebar__icon"/>
                     {item.label}

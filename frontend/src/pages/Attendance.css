@@ -158,48 +158,59 @@
   line-height: 1.35;
 }
 
-.attendance__map {
-  position: relative;
-  aspect-ratio: 16 / 10;
-  max-height: 200px;
+.attendance__hint-live {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-warn, #b8860b);
+  line-height: 1.35;
+}
+
+.attendance__map-wrap {
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: linear-gradient(180deg, #dfe6ee 0%, #c5d0de 50%, #b0becd 100%);
   border: 1px solid var(--color-border);
+  min-height: 200px;
+  max-height: 220px;
+  aspect-ratio: 16 / 10;
 }
 
-.attendance__map-pattern {
-  position: absolute;
-  inset: 0;
-  opacity: 0.45;
-  background-image: linear-gradient(#a8b8cc 1px, transparent 1px),
-    linear-gradient(90deg, #a8b8cc 1px, transparent 1px);
-  background-size: 18px 18px;
+.attendance__map-leaflet {
+  height: 100%;
+  min-height: 200px;
+  width: 100%;
+  z-index: 1;
 }
 
-.attendance__map-pin {
-  position: absolute;
-  left: 52%;
-  top: 48%;
-  transform: translate(-50%, -100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
+.attendance__map-leaflet .leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-body, system-ui, sans-serif);
 }
 
-.attendance__map-pin svg {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+.attendance__map--leaflet-loading {
+  min-height: 200px;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(180deg, #dfe6ee 0%, #c5d0de 100%);
+  border-radius: var(--radius-md);
 }
 
-.attendance__map-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  box-shadow: var(--shadow-sm);
+.attendance-map-user-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.attendance-map-user-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1565c0;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.attendance-map-popup-muted {
+  font-size: 0.85em;
+  opacity: 0.85;
 }
 
 .attendance__loc-ok {

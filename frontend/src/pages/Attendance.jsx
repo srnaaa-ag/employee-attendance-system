@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as blazeface from "@tensorflow-models/blazeface";
-import * as tf from "@tensorflow/tfjs";
+import AttendanceLocationMap from "../components/AttendanceLocationMap.jsx";
 import { IconCamera, IconLogout } from "../components/icons/NavIcons.jsx";
+import { getMyProfile } from "../services/profileService.js";
+import {
+  detectLiveRecognition,
+  imageToFaceDescriptor,
+  loadFaceApiModels,
+  reportFaceRecognitionResult,
+} from "../services/faceRecognitionService.js";
 import {
   getMaxRadiusMeters,
   getWorkplace,
@@ -14,54 +20,20 @@ const SUCCESS_MSG = "Успешно евидентирано!";
 const FAIL_MSG = "Лицето не е препознато или локацијата не е дозволена!";
 const FACE_STREAK = 5;
 const SCAN_TIMEOUT_MS = 22000;
-
-function MapPin() {
-  return (
-    <svg width="36" height="44" viewBox="0 0 36 44" aria-hidden>
-      <path
-        d="M18 2C11.4 2 6 7.2 6 13.4c0 7.4 12 26.6 12 26.6S30 20.8 30 13.4C30 7.2 24.6 2 18 2z"
-        fill="#c41e3a"
-        stroke="#9a1830"
-        strokeWidth="1"
-      />
-      <circle cx="18" cy="14" r="4.5" fill="#ffffff" />
-    </svg>
-  );
-}
+const DETECT_INTERVAL_MS = 280;
 
 function CheckMini() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-      <path d="M2.5 6l2.2 2.2L9.5 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2.5 6l2.2 2.2L9.5 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
-}
-
-/** [x,y] topLeft / bottomRight → проценти во прегледот */
-function faceBoxToPercent(face, videoEl) {
-  const tl = face.topLeft;
-  const br = face.bottomRight;
-  if (!Array.isArray(tl) || !Array.isArray(br)) return null;
-  const [x0, y0] = tl;
-  const [x1, y1] = br;
-  const vw = videoEl.videoWidth;
-  const vh = videoEl.videoHeight;
-  if (!vw || !vh) return null;
-  const left = (Math.min(x0, x1) / vw) * 100;
-  const top = (Math.min(y0, y1) / vh) * 100;
-  const width = (Math.abs(x1 - x0) / vw) * 100;
-  const height = (Math.abs(y1 - y0) / vh) * 100;
-  return { left, top, width, height };
-}
-
-let blazefaceModelPromise = null;
-
-async function loadFaceModel() {
-  await tf.ready();
-  if (!blazefaceModelPromise) {
-    blazefaceModelPromise = blazeface.load({ scoreThreshold: 0.65, maxFaces: 2 });
-  }
-  return blazefaceModelPromise;
 }
 
 export default function Attendance() {
@@ -72,16 +44,24 @@ export default function Attendance() {
   const streakRef = useRef(0);
   const locationOkRef = useRef(false);
   const scanFinishedRef = useRef(false);
+  const locationCoordsRef = useRef(/** @type {{ lat: number; lng: number } | null} */ (null));
+  const employeeIdRef = useRef(/** @type {number | null} */ (null));
+  const referenceDescriptorRef = useRef(/** @type {Float32Array | null} */ (null));
+  const lastMetricsRef = useRef(/** @type {{ distance: number; confidence: number } | null} */ (null));
+  const detectBusyRef = useRef(false);
 
   const [streamActive, setStreamActive] = useState(false);
   const [loadingModel, setLoadingModel] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(/** @type {null | 'success' | 'error'} */ (null));
-  const [faceBox, setFaceBox] = useState(/** @type {null | { left: number; top: number; width: number; height: number }} */ (null));
+  const [scanResult, setScanResult] = useState(/** @type {null | "success" | "error"} */ (null));
+  const [faceBox, setFaceBox] = useState(
+    /** @type {null | { left: number; top: number; width: number; height: number }} */ (null)
+  );
   const [locationInfo, setLocationInfo] = useState(
     /** @type {null | { lat: number; lng: number; accuracy: number; inZone: boolean }} */ (null)
   );
   const [scanError, setScanError] = useState(/** @type {null | string} */ (null));
+  const [liveHint, setLiveHint] = useState(/** @type {null | string} */ (null));
 
   const stopStream = useCallback(() => {
     if (detectIntervalRef.current) {
@@ -93,6 +73,7 @@ export default function Attendance() {
       timeoutRef.current = null;
     }
     streakRef.current = 0;
+    detectBusyRef.current = false;
     const s = streamRef.current;
     if (s) {
       s.getTracks().forEach((t) => t.stop());
@@ -104,12 +85,39 @@ export default function Attendance() {
     setStreamActive(false);
     setScanning(false);
     setFaceBox(null);
+    setLiveHint(null);
   }, []);
 
   useEffect(() => () => stopStream(), [stopStream]);
 
+  const sendRecognitionReport = useCallback(async (recognitionSuccessful) => {
+    const coords = locationCoordsRef.current;
+    const metrics = lastMetricsRef.current;
+    const employeeId = employeeIdRef.current;
+    if (!coords) return;
+
+    const body = {
+      recognitionSuccessful,
+      latitude: coords.lat,
+      longitude: coords.lng,
+      distance: metrics?.distance ?? null,
+      confidence: metrics?.confidence ?? null,
+      timestamp: new Date().toISOString(),
+      employeeId,
+    };
+
+    try {
+      const res = await reportFaceRecognitionResult(body);
+      if (!res.ok) {
+        console.warn("Face recognition report rejected:", res.status, await res.text().catch(() => ""));
+      }
+    } catch (e) {
+      console.warn("Face recognition report failed:", e);
+    }
+  }, []);
+
   const finishScan = useCallback(
-      (ok) => {
+    (ok) => {
       if (scanFinishedRef.current) return;
       scanFinishedRef.current = true;
       if (detectIntervalRef.current) {
@@ -121,20 +129,26 @@ export default function Attendance() {
         timeoutRef.current = null;
       }
       setScanning(false);
-        setScanResult(ok ? "success" : "error");
-        if (ok) setScanError(null);
+      setScanResult(ok ? "success" : "error");
+      if (ok) setScanError(null);
+      void sendRecognitionReport(ok);
       stopStream();
     },
-    [stopStream]
+    [sendRecognitionReport, stopStream]
   );
 
   const startScan = async () => {
     scanFinishedRef.current = false;
     setScanResult(null);
     setScanError(null);
+    setLiveHint(null);
     setLoadingModel(true);
     streakRef.current = 0;
     locationOkRef.current = false;
+    locationCoordsRef.current = null;
+    employeeIdRef.current = null;
+    referenceDescriptorRef.current = null;
+    lastMetricsRef.current = null;
     setLocationInfo(null);
 
     try {
@@ -143,6 +157,7 @@ export default function Attendance() {
       const lng = pos.coords.longitude;
       const inZone = isWithinWorkplace(lat, lng);
       locationOkRef.current = inZone;
+      locationCoordsRef.current = { lat, lng };
       setLocationInfo({
         lat,
         lng,
@@ -154,7 +169,7 @@ export default function Attendance() {
       let msg = "Грешка при читање на локација.";
       if (typeof e === "object" && e !== null && "code" in e) {
         const c = /** @type {GeolocationPositionError} */ (e).code;
-        if (c === 1) msg = "Локацијата е одбиена.";
+        if (c === 1) msg = "Вклучете локација.";
         else if (c === 2) msg = "Позицијата не е достапна.";
         else if (c === 3) msg = "Истече времето за локација.";
       } else if (e instanceof Error) msg = e.message;
@@ -162,6 +177,43 @@ export default function Attendance() {
       setScanResult("error");
       return;
     }
+
+    let profile;
+    try {
+      profile = await getMyProfile();
+    } catch {
+      setLoadingModel(false);
+      setScanError("Не можам да го вчитам профилот. Провери дали си најавен.");
+      setScanResult("error");
+      return;
+    }
+
+    const photo = profile?.user?.profilePicture;
+    if (!photo || String(photo).trim().length === 0) {
+      setLoadingModel(false);
+      setScanError('Нема профилна слика. Прво додај слика во „Мој профил“.');
+      setScanResult("error");
+      return;
+    }
+
+    const empId = profile?.id;
+    employeeIdRef.current = typeof empId === "number" ? empId : empId != null ? Number(empId) : null;
+
+    let refDescriptor;
+    try {
+      await loadFaceApiModels();
+      refDescriptor = await imageToFaceDescriptor(photo);
+    } catch (e) {
+      setLoadingModel(false);
+      if (e instanceof Error && e.message === "NO_FACE_IN_REFERENCE") {
+        setScanError("На профилната слика не е детектирано лице. Прикачи појасна фотографија.");
+      } else {
+        setScanError("Моделите или профилната слика не можат да се обработат (провери интернет).");
+      }
+      setScanResult("error");
+      return;
+    }
+    referenceDescriptorRef.current = refDescriptor;
 
     let stream;
     try {
@@ -199,55 +251,61 @@ export default function Attendance() {
       else video.addEventListener("loadeddata", () => resolve(undefined), { once: true });
     });
 
-    let model;
-    try {
-      model = await loadFaceModel();
-    } catch {
-      stream.getTracks().forEach((t) => t.stop());
-      setLoadingModel(false);
-      setScanError("Моделот за препознавање на лице не може да се вчита (провери интернет).");
-      setScanResult("error");
-      return;
-    }
-
     setLoadingModel(false);
     setStreamActive(true);
     setScanning(true);
 
     timeoutRef.current = window.setTimeout(() => {
-        finishScan(false);
-        }, SCAN_TIMEOUT_MS);
+      finishScan(false);
+    }, SCAN_TIMEOUT_MS);
 
     detectIntervalRef.current = window.setInterval(async () => {
       const v = videoRef.current;
-      if (!v || v.readyState < 2) return;
+      const refDesc = referenceDescriptorRef.current;
+      if (!v || v.readyState < 2 || !refDesc || detectBusyRef.current) return;
+      detectBusyRef.current = true;
       try {
-        const faces = await model.estimateFaces(v, false, false);
-        if (faces.length > 0) {
-          const box = faceBoxToPercent(faces[0], v);
-          setFaceBox(box);
+        const result = await detectLiveRecognition(v, refDesc);
+        if (result.kind === "no_face") {
+          streakRef.current = 0;
+          setFaceBox(null);
+          setLiveHint(null);
+          return;
+        }
+        if (result.kind === "multiple_faces") {
+          streakRef.current = 0;
+          setFaceBox(result.box ?? null);
+          setLiveHint("Повеќе лица во кадар, потребно е едно лице пред камера.");
+          return;
+        }
+        setLiveHint(null);
+        setFaceBox(result.box);
+        lastMetricsRef.current = { distance: result.distance, confidence: result.confidence };
+        if (result.match) {
           streakRef.current += 1;
           if (streakRef.current >= FACE_STREAK) {
-              if (locationOkRef.current) finishScan(true);
-              else finishScan(false);
+            if (locationOkRef.current) finishScan(true);
+            else finishScan(false);
           }
         } else {
           streakRef.current = 0;
-          setFaceBox(null);
         }
       } catch {
         streakRef.current = 0;
+      } finally {
+        detectBusyRef.current = false;
       }
-    }, 200);
+    }, DETECT_INTERVAL_MS);
   };
 
-    const handleCheckout = () => {
+  const handleCheckout = () => {
     scanFinishedRef.current = false;
     stopStream();
     setScanResult(null);
     setScanError(null);
     setLocationInfo(null);
     locationOkRef.current = false;
+    locationCoordsRef.current = null;
   };
 
   const wp = getWorkplace();
@@ -293,6 +351,7 @@ export default function Attendance() {
               <IconCamera size={20} />
               {loadingModel ? "Подготовка…" : scanning ? "Скенирање…" : "Почни со скенирање"}
             </button>
+            {liveHint && scanning && <p className="attendance__hint-live">{liveHint}</p>}
             {scanError && !scanning && scanResult === "error" && (
               <p className="attendance__scan-err" role="alert">
                 {scanError}
@@ -304,12 +363,16 @@ export default function Attendance() {
             <h2 id="att-map-title" className="attendance__col-title">
               Детекција на локација
             </h2>
-            <div className="attendance__map" role="img" aria-label="Мапа на локација">
-              <div className="attendance__map-pattern" aria-hidden />
-              <div className="attendance__map-pin">
-                <MapPin />
-                <span className="attendance__map-label">Работно место</span>
-              </div>
+            <div className="attendance__map-wrap">
+              <AttendanceLocationMap
+                workplace={wp}
+                radiusM={radius}
+                userLocation={
+                  locationInfo
+                    ? { lat: locationInfo.lat, lng: locationInfo.lng, inZone: locationInfo.inZone }
+                    : null
+                }
+              />
             </div>
             {locationInfo && (
               <p className="attendance__coords">
@@ -318,13 +381,15 @@ export default function Attendance() {
               </p>
             )}
             <p className="attendance__zone-hint">
-              Дозволена зона: ~{Math.round(radius / 1000)} km околу ({wp.lat.toFixed(4)}, {wp.lng.toFixed(4)}) — прилагоди во{" "}
-              <code className="attendance__code">.env</code> (VITE_WORKPLACE_LAT, VITE_WORKPLACE_LNG,
-              VITE_WORKPLACE_RADIUS_M).
+              Дозволена зона: ~{Math.round(radius / 1000)} km околу Скопје
             </p>
             {locationInfo ? (
               <div className={locationInfo.inZone ? "attendance__loc-ok" : "attendance__loc-bad"}>
-                <span className={locationInfo.inZone ? "attendance__loc-icon" : "attendance__loc-icon attendance__loc-icon--bad"}>
+                <span
+                  className={
+                    locationInfo.inZone ? "attendance__loc-icon" : "attendance__loc-icon attendance__loc-icon--bad"
+                  }
+                >
                   {locationInfo.inZone ? <CheckMini /> : "!"}
                 </span>
                 {locationInfo.inZone ? "Локацијата е во зоната" : "Надвор од дозволената зона"}
@@ -338,14 +403,16 @@ export default function Attendance() {
             <h2 id="att-status-title" className="visually-hidden">
               Статус и акција
             </h2>
+            <p className="attendance__shift">Работно време: 08:00 - 16:00</p>
+            <p className="attendance__hint">Имате 2 чекори за евиденција</p>
+            {scanResult === null && (
+              <div className="attendance__pill-hint">Скенирај лице и дозволи локација за статус.</div>
+            )}
             {scanResult === "success" && <div className="attendance__pill attendance__pill--ok">{SUCCESS_MSG}</div>}
             {scanResult === "error" && (
               <div className="attendance__pill attendance__pill--error">{FAIL_MSG}</div>
             )}
-            {scanResult === null && <div className="attendance__pill-hint">Скенирај лице и дозволи локација за статус.</div>}
-            <p className="attendance__shift">Работно време: 08:00 - 16:00</p>
-            <p className="attendance__hint">Имате 2 чекори за евиденција</p>
-              <button type="button" className="attendance__btn-checkout" onClick={handleCheckout}>
+            <button type="button" className="attendance__btn-checkout" onClick={handleCheckout}>
               <IconLogout size={20} />
               CHECK OUT
             </button>
