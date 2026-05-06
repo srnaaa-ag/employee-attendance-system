@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout.jsx";
+import GuestOnly from "./components/GuestOnly.jsx";
 import ProtectedLayout from "./components/ProtectedLayout.jsx";
+import RequireAdmin from "./components/RequireAdmin.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import LeaveRequests from "./pages/LeaveRequests.jsx";
@@ -37,7 +39,12 @@ export default function App() {
                 <Route path="/correction-requests" element={<CorrectionRequests />} />
             </Route>
         </Route>
-        <Route path="*" element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}/>
+      </Route>
+
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
+      />
     </Routes>
   );
 }
