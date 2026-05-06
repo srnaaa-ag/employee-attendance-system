@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
-
+import { useState, useEffect, useCallback } from "react";
 import "./Page.css";
+
 import {
   createLeaveRequest,
   getRequestsForLoggedInEmployee,
-  getAllLeaveRequests,
+  getRequestsByStatus,
   approveLeaveRequest,
   rejectLeaveRequest,
 } from "../services/leaveRequest";
+
 import { isAdmin } from "../services/authService";
 
 const STATUS_MK = {
@@ -16,43 +17,17 @@ const STATUS_MK = {
   PENDING: "Во исчекување",
   CANCELLED: "Откажано",
 };
+
 const LEAVE_TYPE_MK = {
   ANNUAL: "Годишен одмор",
   SICK_LEAVE: "Боледување",
 };
+
 const MAX_ADMIN_COMMENT = 500;
 
-/** За UI преглед (без база). */
-const DEMO_PENDING_REQUESTS = [
-  {
-    id: "demo-1",
-    employeeName: "Марија Петровска",
-    startDate: "2026-05-12",
-    endDate: "2026-05-16",
-    leaveType: "ANNUAL",
-    reason: "Годишен одмор, семејни обврски",
-  },
-  {
-    id: "demo-2",
-    employeeName: "Стојан Георгиевски",
-    startDate: "2026-05-20",
-    endDate: "2026-05-21",
-    leaveType: "SICK_LEAVE",
-    reason: "Преглед кај лекар",
-  },
-  {
-    id: "demo-3",
-    employeeName: "Ана Стојанова",
-    startDate: "2026-06-02",
-    endDate: "2026-06-13",
-    leaveType: "ANNUAL",
-    reason: "",
-  },
-];
-
 export default function LeaveRequests() {
-  const [allRequests, setAllRequests] = useState([]);
-  const [adminComments, setAdminComments] = useState({});
+  const admin = isAdmin();
+
   const [form, setForm] = useState({
     leaveType: "ANNUAL",
     startDate: "",
@@ -61,17 +36,12 @@ export default function LeaveRequests() {
   });
 
   const [requests, setRequests] = useState([]);
-  const admin = isAdmin();
+  const [pendingList, setPendingList] = useState([]);
+  const [adminComments, setAdminComments] = useState({});
+  const [pendingLoadError, setPendingLoadError] = useState(null);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleAdminCommentChange = (id, value) => {
-    setAdminComments((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
   };
 
   const loadRequests = async () => {
@@ -83,49 +53,34 @@ export default function LeaveRequests() {
     }
   };
 
-  useEffect(() => {
-    if (admin) {
-      loadAllRequests(); // 👈 admin gets ALL
-    } else {
-      loadRequests(); // 👈 employee gets OWN
+  const loadPending = useCallback(async () => {
+    if (!admin) return;
+
+    setPendingLoadError(null);
+
+    try {
+      const data = await getRequestsByStatus("PENDING");
+      setPendingList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error loading pending:", err);
+      setPendingList([]);
+      setPendingLoadError("Не можам да ја вчитам листата.");
     }
+  }, [admin]);
+
+  useEffect(() => {
+    loadRequests();
   }, []);
 
-  const loadAllRequests = async () => {
-    try {
-      const data = await getAllLeaveRequests();
-      setAllRequests(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error loading all requests:", err);
-    }
-  };
-
-  const handleApprove = async (id) => {
-    try {
-      const comment = adminComments[id];
-      await approveLeaveRequest(id, comment);
-
-      await loadAllRequests(); // refresh
-    } catch (err) {
-      console.error("Approve error:", err);
-    }
-  };
-
-  const handleReject = async (id) => {
-    try {
-      const comment = adminComments[id];
-      await rejectLeaveRequest(id, comment);
-
-      await loadAllRequests(); // refresh
-    } catch (err) {
-      console.error("Reject error:", err);
-    }
-  };
+  useEffect(() => {
+    loadPending();
+  }, [loadPending]);
 
   const handleSubmit = async () => {
     try {
       await createLeaveRequest(form);
       await loadRequests();
+
       setForm({
         leaveType: "ANNUAL",
         startDate: "",
@@ -134,6 +89,31 @@ export default function LeaveRequests() {
       });
     } catch (err) {
       console.error("Error creating request:", err);
+    }
+  };
+
+  const handleAdminCommentChange = (id, value) => {
+    setAdminComments((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await approveLeaveRequest(id, adminComments[id]);
+      await loadPending();
+    } catch (err) {
+      console.error("Approve error:", err);
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await rejectLeaveRequest(id, adminComments[id]);
+      await loadPending();
+    } catch (err) {
+      console.error("Reject error:", err);
     }
   };
 
@@ -158,15 +138,12 @@ export default function LeaveRequests() {
       <h2>Барање за отсуство</h2>
 
       <div className="leave-grid">
+        {/* CREATE REQUEST */}
         <div className="card">
           <h3>Ново барање</h3>
 
           <label>Тип</label>
-          <select
-            name="leaveType"
-            value={form.leaveType}
-            onChange={handleChange}
-          >
+          <select name="leaveType" value={form.leaveType} onChange={handleChange}>
             <option value="ANNUAL">Годишен одмор</option>
             <option value="SICK_LEAVE">Боледување</option>
           </select>
@@ -174,21 +151,11 @@ export default function LeaveRequests() {
           <div className="row">
             <div>
               <label>Од датум</label>
-              <input
-                type="date"
-                name="startDate"
-                value={form.startDate}
-                onChange={handleChange}
-              />
+              <input type="date" name="startDate" value={form.startDate} onChange={handleChange} />
             </div>
             <div>
               <label>До датум</label>
-              <input
-                type="date"
-                name="endDate"
-                value={form.endDate}
-                onChange={handleChange}
-              />
+              <input type="date" name="endDate" value={form.endDate} onChange={handleChange} />
             </div>
           </div>
 
@@ -196,15 +163,16 @@ export default function LeaveRequests() {
           <textarea
             name="reason"
             value={form.reason}
-            placeholder="Приложи објаснување"
             onChange={handleChange}
+            placeholder="Приложи објаснување"
           />
 
-          <button type="button" className="primary-btn" onClick={handleSubmit}>
+          <button className="primary-btn" onClick={handleSubmit}>
             Поднеси барање
           </button>
         </div>
 
+        {/* EMPLOYEE REQUESTS */}
         <div className="card">
           <h3>Мои барања</h3>
 
@@ -214,15 +182,14 @@ export default function LeaveRequests() {
                 <th>Период</th>
                 <th>Тип</th>
                 <th>Статус</th>
-                <th>Коментар (од администратор)</th>
+                <th>Коментар</th>
               </tr>
             </thead>
+
             <tbody>
               {requests.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="leave-table__empty">
-                    Нема поднесени барања.
-                  </td>
+                  <td colSpan={4}>Нема поднесени барања.</td>
                 </tr>
               ) : (
                 requests.map((r) => (
@@ -236,9 +203,7 @@ export default function LeaveRequests() {
                         {STATUS_MK[r.status] ?? r.status}
                       </span>
                     </td>
-                    <td className="leave-table__comment">
-                      {r.adminComment?.trim() ? r.adminComment : "—"}
-                    </td>
+                    <td>{r.adminComment?.trim() ? r.adminComment : "—"}</td>
                   </tr>
                 ))
               )}
@@ -247,80 +212,59 @@ export default function LeaveRequests() {
         </div>
       </div>
 
-      {admin ? (
-        <div className="card leave-admin-card leave-admin-card--demo">
-          <h3>Барања во исчекување (администратор)</h3>
-          <p className="leave-demo-banner">
-            Демо преглед на интерфејс — пример податоци, без база. Копчињата се
-            исклучени.
-          </p>
-          <p className="leave-admin-hint">
-            При одобрување или одбивање можеш да додадеш незадолжителен коментар
-            (макс. {MAX_ADMIN_COMMENT} знаци). Вработениот го гледа во табелата
-            „Мои барања“ и во известувањата.
-          </p>
+      {/* ADMIN */}
+      {admin && (
+        <div className="card">
+          <h3>Барања во исчекување</h3>
+
+          {pendingLoadError && <p className="leave-error">{pendingLoadError}</p>}
+
           <table className="leave-table leave-table--wide">
             <thead>
               <tr>
                 <th>Вработен</th>
                 <th>Период</th>
                 <th>Тип</th>
-                <th>Коментар на вработен</th>
-                <th>Коментар (администратор)</th>
+                <th>Коментар</th>
+                <th>Админ коментар</th>
                 <th>Акции</th>
               </tr>
             </thead>
+
             <tbody>
-              {allRequests
-                .filter((r) => r.status === "PENDING")
-                .map((r) => (
+              {pendingList.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>Нема барања во исчекување.</td>
+                </tr>
+              ) : (
+                pendingList.map((r) => (
                   <tr key={r.id}>
                     <td>{r.employeeName}</td>
-
                     <td>
                       {formatDate(r.startDate)} – {formatDate(r.endDate)}
                     </td>
-
                     <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-
-                    <td className="leave-table__comment">
-                      {r.reason?.trim() ? r.reason : "—"}
-                    </td>
-
+                    <td>{r.reason?.trim() ? r.reason : "—"}</td>
                     <td>
                       <textarea
-                        className="leave-admin-comment-input"
-                        rows={2}
                         maxLength={MAX_ADMIN_COMMENT}
-                        placeholder="Образложение за вработениот (опционално)"
                         value={adminComments[r.id] || ""}
                         onChange={(e) =>
                           handleAdminCommentChange(r.id, e.target.value)
                         }
                       />
                     </td>
-
-                    <td className="leave-admin-actions">
-                      <button
-                        className="primary-btn leave-btn-approve"
-                        onClick={() => handleApprove(r.id)}
-                      >
-                        Одобри
-                      </button>
-
-                      <button
-                        className="secondary-btn leave-btn-reject"
-                        onClick={() => handleReject(r.id)}
-                      >
-                        Одбиј
-                      </button>
+                    <td>
+                      <button onClick={() => handleApprove(r.id)}>Одобри</button>
+                      <button onClick={() => handleReject(r.id)}>Одбиј</button>
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
