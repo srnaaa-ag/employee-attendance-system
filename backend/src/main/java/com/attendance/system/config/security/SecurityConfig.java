@@ -47,13 +47,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // Public
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
 
                         // EMPLOYEE
                         .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
 
                         // ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -63,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/date-range")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/pending")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/reports/**")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/approve")
@@ -88,14 +94,6 @@ public class SecurityConfig {
                         // SUPER_ADMIN - correction requests
                         .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**").hasRole("SUPER_ADMIN")
 
-                        // EMPLOYEES (ADMIN only)
-                        .requestMatchers(HttpMethod.GET, "/api/employees").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/employees").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/auth/register").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
                         // fallback
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
@@ -112,7 +110,7 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
 
         corsConfiguration.setAllowedOrigins(origins); 
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"));
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
 

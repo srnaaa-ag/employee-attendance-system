@@ -176,7 +176,7 @@ export default function LeaveRequests() {
         <div className="card">
           <h3>Мои барања</h3>
 
-          <table className="leave-table">
+          <table className="leave-table leave-table--employee">
             <thead>
               <tr>
                 <th>Период</th>
@@ -189,21 +189,27 @@ export default function LeaveRequests() {
             <tbody>
               {requests.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>Нема поднесени барања.</td>
+                  <td colSpan={4} className="leave-table__empty">
+                    Нема поднесени барања.
+                  </td>
                 </tr>
               ) : (
                 requests.map((r) => (
                   <tr key={r.id}>
                     <td>
-                      {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                      <span className="leave-table__period">
+                        {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                      </span>
                     </td>
-                    <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-                    <td>
+                    <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
+                    <td className="leave-table__status-cell">
                       <span className={statusClass(r.status)}>
                         {STATUS_MK[r.status] ?? r.status}
                       </span>
                     </td>
-                    <td>{r.adminComment?.trim() ? r.adminComment : "—"}</td>
+                    <td className="leave-table__comment">
+                      {r.adminComment?.trim() ? r.adminComment : "—"}
+                    </td>
                   </tr>
                 ))
               )}
@@ -214,7 +220,7 @@ export default function LeaveRequests() {
 
       {/* ADMIN */}
       {admin && (
-        <div className="card">
+        <div className="card leave-admin-card">
           <h3>Барања во исчекување</h3>
 
           {pendingLoadError && <p className="leave-error">{pendingLoadError}</p>}
@@ -234,17 +240,21 @@ export default function LeaveRequests() {
             <tbody>
               {pendingList.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>Нема барања во исчекување.</td>
+                  <td colSpan={6} className="leave-table__empty">
+                    Нема барања во исчекување.
+                  </td>
                 </tr>
               ) : (
                 pendingList.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.employeeName}</td>
+                    <td className="leave-table__type-cell">{r.employeeName}</td>
                     <td>
-                      {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                      <span className="leave-table__period">
+                        {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                      </span>
                     </td>
-                    <td>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-                    <td>{r.reason?.trim() ? r.reason : "—"}</td>
+                    <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
+                    <td className="leave-table__comment">{r.reason?.trim() ? r.reason : "—"}</td>
                     <td>
                       <textarea
                         maxLength={MAX_ADMIN_COMMENT}

@@ -25,6 +25,21 @@
     padding: 1.25rem 1.25rem 1.5rem;
 }
 
+.reports__error {
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    background: #fce8ec;
+    color: #9b1c2e;
+    font-size: 0.9rem;
+}
+
+.reports__loading {
+    margin: 0 0 0.75rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
 .reports__filters {
     display: flex;
     flex-wrap: wrap;
@@ -94,6 +109,11 @@
 .reports__btn-csv:hover {
     background: #1c2f63;
     border-color: #1c2f63;
+}
+
+.reports__btn-csv:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .reports__table-card {

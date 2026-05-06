@@ -145,6 +145,15 @@ export default function CorrectionRequests() {
         return "status pending";
     }
 
+    function formatDate(dateStr) {
+        if (!dateStr) return "";
+        if (typeof dateStr === "string" && dateStr.includes("-")) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}.${month}.${year}`;
+        }
+        return String(dateStr);
+    }
+
     return (
         <div className="leave-container">
             <h2>Барање за корекција</h2>
@@ -224,38 +233,42 @@ export default function CorrectionRequests() {
                 {/* МОИ БАРАЊА */}
                 <div className="card">
                     <h3>Мои барања</h3>
-                    <table className="leave-table">
+                    <table className="leave-table leave-table--employee">
                         <thead>
-                        <tr>
-                            <th>Датум</th>
-                            <th>Тип</th>
-                            <th>Статус</th>
-                            <th>Коментар (од администратор)</th>
-                        </tr>
+                            <tr>
+                                <th>Датум</th>
+                                <th>Тип</th>
+                                <th>Статус</th>
+                                <th>Коментар (од администратор)</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {requests.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="leave-table__empty">
-                                    Нема поднесени барања.
-                                </td>
-                            </tr>
-                        ) : (
-                            requests.map((r) => (
-                                <tr key={r.id}>
-                                    <td>{r.targetDate}</td>
-                                    <td>{CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}</td>
-                                    <td>
-                      <span className={statusClass(r.status)}>
-                        {STATUS_MK[r.status] ?? r.status}
-                      </span>
-                                    </td>
-                                    <td className="leave-table__comment">
-                                        {r.adminComment?.trim() ? r.adminComment : "—"}
+                            {requests.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="leave-table__empty">
+                                        Нема поднесени барања.
                                     </td>
                                 </tr>
-                            ))
-                        )}
+                            ) : (
+                                requests.map((r) => (
+                                    <tr key={r.id}>
+                                        <td>
+                                            <span className="leave-table__period">{formatDate(r.targetDate)}</span>
+                                        </td>
+                                        <td className="leave-table__type-cell">
+                                            {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                        </td>
+                                        <td className="leave-table__status-cell">
+                                            <span className={statusClass(r.status)}>
+                                                {STATUS_MK[r.status] ?? r.status}
+                                            </span>
+                                        </td>
+                                        <td className="leave-table__comment">
+                                            {r.adminComment?.trim() ? r.adminComment : "—"}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -267,60 +280,64 @@ export default function CorrectionRequests() {
                     <h3>Барања за корекција во исчекување (администратор)</h3>
                     <table className="leave-table leave-table--wide">
                         <thead>
-                        <tr>
-                            <th>Вработен</th>
-                            <th>Датум</th>
-                            <th>Тип</th>
-                            <th>Коментар на вработен</th>
-                            <th>Коментар (администратор)</th>
-                            <th>Акции</th>
-                        </tr>
+                            <tr>
+                                <th>Вработен</th>
+                                <th>Датум</th>
+                                <th>Тип</th>
+                                <th>Коментар на вработен</th>
+                                <th>Коментар (администратор)</th>
+                                <th>Акции</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {pendingList.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="leave-table__empty">
-                                    Нема барања во исчекување.
-                                </td>
-                            </tr>
-                        ) : (
-                            pendingList.map((r) => (
-                                <tr key={r.id}>
-                                    <td>{r.employeeName}</td>
-                                    <td>{r.targetDate}</td>
-                                    <td>{CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}</td>
-                                    <td className="leave-table__comment">
-                                        {r.reason?.trim() ? r.reason : "—"}
-                                    </td>
-                                    <td>
-                      <textarea
-                          className="leave-admin-comment-input"
-                          rows={2}
-                          maxLength={MAX_ADMIN_COMMENT}
-                          placeholder="Образложение (опционално)"
-                          value={reviewNotes[String(r.id)] ?? ""}
-                          onChange={(e) => setReviewNote(r.id, e.target.value)}
-                      />
-                                    </td>
-                                    <td className="leave-admin-actions">
-                                        <button
-                                            type="button"
-                                            className="primary-btn leave-btn-approve"
-                                            onClick={() => handleApprove(r.id)}
-                                        >
-                                            Одобри
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="secondary-btn leave-btn-reject"
-                                            onClick={() => handleReject(r.id)}
-                                        >
-                                            Одбиј
-                                        </button>
+                            {pendingList.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="leave-table__empty">
+                                        Нема барања во исчекување.
                                     </td>
                                 </tr>
-                            ))
-                        )}
+                            ) : (
+                                pendingList.map((r) => (
+                                    <tr key={r.id}>
+                                        <td className="leave-table__type-cell">{r.employeeName}</td>
+                                        <td>
+                                            <span className="leave-table__period">{formatDate(r.targetDate)}</span>
+                                        </td>
+                                        <td className="leave-table__type-cell">
+                                            {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                        </td>
+                                        <td className="leave-table__comment">
+                                            {r.reason?.trim() ? r.reason : "—"}
+                                        </td>
+                                        <td>
+                                            <textarea
+                                                className="leave-admin-comment-input"
+                                                rows={2}
+                                                maxLength={MAX_ADMIN_COMMENT}
+                                                placeholder="Образложение (опционално)"
+                                                value={reviewNotes[String(r.id)] ?? ""}
+                                                onChange={(e) => setReviewNote(r.id, e.target.value)}
+                                            />
+                                        </td>
+                                        <td className="leave-admin-actions">
+                                            <button
+                                                type="button"
+                                                className="primary-btn leave-btn-approve"
+                                                onClick={() => handleApprove(r.id)}
+                                            >
+                                                Одобри
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="secondary-btn leave-btn-reject"
+                                                onClick={() => handleReject(r.id)}
+                                            >
+                                                Одбиј
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

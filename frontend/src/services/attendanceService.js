@@ -1,8 +1,23 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { fetchWithAuth } from "./api";
 
-export async function fetchAttendanceSummary() {
-  if (!API_BASE) return null;
-  const res = await fetch(`${API_BASE}/attendance/summary`);
-  if (!res.ok) throw new Error("Failed to load attendance summary");
+/**
+ * @param {number} [recentLimit=10]
+ * @returns {Promise<{
+ *   todayCheckIn: string | null;
+ *   todayWorkedHours: string | null;
+ *   monthLateTotal: string;
+ *   recent: Array<{ date: string; checkIn: string; checkOut: string; status: string }>;
+ * }>}
+ */
+export async function getMyDashboard(recentLimit = 10) {
+  const res = await fetchWithAuth(`/attendance/me/dashboard?recentLimit=${recentLimit}`);
+  if (res.status === 404) {
+    const t = await res.text();
+    throw new Error(t || "Нема поврзан запис за вработен.");
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || `HTTP ${res.status}`);
+  }
   return res.json();
 }

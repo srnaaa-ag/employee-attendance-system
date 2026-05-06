@@ -165,6 +165,91 @@ td {
 
 .leave-table {
     table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Компактни табели „Мои барања“ (отсуство + корекција) */
+.leave-table--employee {
+    margin-top: 0.25rem;
+    font-size: 0.92rem;
+    table-layout: auto;
+}
+
+.leave-table--employee thead th {
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #243c7c;
+    background: #e8eef9;
+    border-bottom: 2px solid #c5d4ef;
+    padding: 0.65rem 0.85rem;
+    vertical-align: bottom;
+}
+
+.leave-table--employee tbody td {
+    padding: 0.7rem 0.85rem;
+    vertical-align: middle;
+    line-height: 1.4;
+    border-bottom: 1px solid #eceff4;
+}
+
+.leave-table--employee tbody tr:hover {
+    background: #fafbfd;
+}
+
+.leave-table--employee th:nth-child(1),
+.leave-table--employee td:nth-child(1) {
+    min-width: 9.5rem;
+    max-width: 12.5rem;
+}
+
+.leave-table--employee th:nth-child(2),
+.leave-table--employee td:nth-child(2) {
+    min-width: 7.5rem;
+}
+
+.leave-table--employee th:nth-child(3),
+.leave-table--employee td:nth-child(3) {
+    min-width: 5.5rem;
+}
+
+.leave-table--employee th:nth-child(4),
+.leave-table--employee td:nth-child(4) {
+    min-width: 5rem;
+}
+
+.leave-table--employee th:not(:first-child),
+.leave-table--employee td:not(:first-child) {
+    border-left: 1px solid #e8ecf4;
+}
+
+.leave-table__period {
+    font-variant-numeric: tabular-nums;
+    color: #1a2235;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.leave-table__status-cell {
+    text-align: center;
+}
+
+.leave-table__status-cell .status {
+    display: inline-block;
+    white-space: nowrap;
+    vertical-align: middle;
+    line-height: 1.2;
+}
+
+.leave-table__type-cell {
+    color: #2c3347;
 }
 
 .leave-table__empty {
@@ -176,6 +261,38 @@ td {
 .leave-table__comment {
     word-break: break-word;
     font-size: 0.9rem;
+    color: #3d4a5c;
+    line-height: 1.45;
+}
+
+.leave-table--wide {
+    font-size: 0.9rem;
+}
+
+.leave-table--wide thead th {
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #243c7c;
+    background: #e8eef9;
+    border-bottom: 2px solid #c5d4ef;
+    padding: 0.6rem 0.75rem;
+}
+
+.leave-table--wide tbody td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #eceff4;
+}
+
+.leave-table--wide tbody tr:hover {
+    background: #fafbfd;
+}
+
+.leave-table--wide .leave-table__period {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .leave-table--wide th,
@@ -183,8 +300,22 @@ td {
     vertical-align: top;
 }
 
+.leave-table--wide .leave-table__status-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.leave-error {
+    margin: 0 0 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    background: #fff3e0;
+    color: #b85c00;
+    font-size: 0.9rem;
+}
+
 .leave-admin-card {
-    margin-top: 24px;
+    margin-top: 2rem;
 }
 
 .leave-admin-hint {
