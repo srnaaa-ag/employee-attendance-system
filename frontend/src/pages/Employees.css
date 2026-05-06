@@ -437,3 +437,12 @@
     background: #fafbfd;
     border-radius: 0 0 12px 12px;
 }
+
+.emp-modal__panel--wide {
+  max-width: 900px;
+  width: 90%;
+}
+
+.emp-modal__map-leaflet {
+  border: 1px solid #ddd;
+}

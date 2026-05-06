@@ -47,7 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // Public
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
 
                         // EMPLOYEE
                         .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
@@ -94,6 +94,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/employees").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/employees/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/auth/register").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         // fallback
                         .anyRequest().authenticated())

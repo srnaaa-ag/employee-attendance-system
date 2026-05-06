@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
-import { getAllEmployees } from "../services/employeeService"; // 👈 ADD
+import { getAllEmployees } from "../services/employeeService";
+import { createEmployee } from "../services/api.js";
 import EmployeeEditModal from "../components/EmployeeEditModal.jsx";
+import CreateEmployeeModal from "../components/CreateEmployeeModal.jsx";
 import "./Employees.css";
 
 const faceBadgeClass = (kind) =>
@@ -25,6 +27,7 @@ function createDefaultWeek() {
     sun: { ...off },
   };
 }
+
 function cloneWeek(w) {
   const out = {};
   for (const k of Object.keys(w)) {
@@ -55,6 +58,7 @@ function summarizeWeek(week) {
   if (same) return `${start} – ${end}`;
   return `${start} – ${end} (+други смени)`;
 }
+
 function buildDraft(emp) {
   return {
     id: emp.id,
@@ -69,50 +73,17 @@ function buildDraft(emp) {
   };
 }
 
-const INITIAL = [
-  {
-    id: "1",
-    name: "Ана Стојановска",
-    dept: "Финансии",
-    position: "Аналитичар",
-    hasFacePhoto: true,
-    checkLabel: "Навреме",
-    checkKind: "ontime",
-    week: createDefaultWeek(),
-  },
-  {
-    id: "2",
-    name: "Марко Петровски",
-    dept: "ИТ",
-    position: "Програмер",
-    hasFacePhoto: false,
-    checkLabel: "Навреме",
-    checkKind: "ontime",
-    week: createDefaultWeek(),
-  },
-  {
-    id: "3",
-    name: "Доне Донев",
-    dept: "Менаџер",
-    position: "Менаџер",
-    hasFacePhoto: true,
-    checkLabel: "Доцнење",
-    checkKind: "late",
-    week: createDefaultWeek(),
-  },
-];
-
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
+
   function mapEmployeeFromBackend(e) {
     const week = createDefaultWeek();
-
     return {
       id: String(e.id),
       name: `${e.firstName} ${e.lastName}`,
       dept: e.department,
       position: e.position,
-      hasFacePhoto: false, // 👈 until you implement it
+      hasFacePhoto: false,
       checkLabel: "—",
       checkKind: "ontime",
       week,
@@ -120,49 +91,185 @@ export default function Employees() {
     };
   }
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [draft, setDraft] = useState(null);
-  const openModal = useCallback((emp) => {
-    setDraft(buildDraft(emp));
-    setModalOpen(true);
+  // Edit Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState(null);
+
+  const openEditModal = useCallback((emp) => {
+    setEditDraft(buildDraft(emp));
+    setEditModalOpen(true);
   }, []);
-  const closeModal = useCallback(() => {
-    setDraft((d) => {
+
+  const closeEditModal = useCallback(() => {
+    setEditDraft((d) => {
       if (d?.photoPreview?.startsWith("blob:")) {
         URL.revokeObjectURL(d.photoPreview);
       }
       return null;
     });
-    setModalOpen(false);
+    setEditModalOpen(false);
   }, []);
 
-  const saveModal = useCallback(() => {
-    if (!draft) return;
-    if (draft.photoPreview?.startsWith("blob:")) {
-      URL.revokeObjectURL(draft.photoPreview);
+  const saveEditModal = useCallback(() => {
+    if (!editDraft) return;
+    if (editDraft.photoPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(editDraft.photoPreview);
     }
     const hasFacePhoto =
-      draft.photoFile || draft.photoPreview
+      editDraft.photoFile || editDraft.photoPreview
         ? true
-        : draft.photoCleared
+        : editDraft.photoCleared
           ? false
-          : draft.hadFacePhoto;
+          : editDraft.hadFacePhoto;
     setEmployees((list) =>
       list.map((e) => {
-        if (e.id !== draft.id) return e;
+        if (e.id !== editDraft.id) return e;
         return {
           ...e,
-          dept: draft.dept.trim() || e.dept,
-          position: draft.position.trim() || e.position,
-          week: cloneWeek(draft.week),
-          time: summarizeWeek(draft.week),
+          dept: editDraft.dept.trim() || e.dept,
+          position: editDraft.position.trim() || e.position,
+          week: cloneWeek(editDraft.week),
+          time: summarizeWeek(editDraft.week),
           hasFacePhoto,
         };
       }),
     );
-    setDraft(null);
-    setModalOpen(false);
-  }, [draft]);
+    setEditDraft(null);
+    setEditModalOpen(false);
+  }, [editDraft]);
+
+  // Create Modal State
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({
+    user: {
+      email: "",
+      password: "",
+      role: "EMPLOYEE",
+    },
+    employee: {
+      first_name: "",
+      last_name: "",
+      department: "",
+      position: "",
+      employment_date: "",
+      allowed_latitude: 41.9981,
+      allowed_longitude: 21.4254,
+      allowed_radius_meters: 100.0,
+    },
+  });
+
+  const openCreateModal = () => {
+    setCreateDraft({
+      user: {
+        email: "",
+        password: "",
+        role: "EMPLOYEE",
+      },
+      employee: {
+        first_name: "",
+        last_name: "",
+        department: "",
+        position: "",
+        employment_date: "",
+        allowed_latitude: 41.9981,
+        allowed_longitude: 21.4254,
+        allowed_radius_meters: 100.0,
+      },
+    });
+    setCreateModalOpen(true);
+  };
+
+  const saveCreateModal = async () => {
+    const { user, employee } = createDraft;
+
+    if (!user.email.trim()) {
+      alert("Email е задолжителен");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(user.email)) {
+      alert("Внесете валиден email");
+      return;
+    }
+
+    if (!user.password.trim()) {
+      alert("Лозинка е задолжителна");
+      return;
+    }
+
+    if (user.password.length < 6) {
+      alert("Лозинката мора да има најмалку 6 карактери");
+      return;
+    }
+
+    if (!employee.first_name.trim()) {
+      alert("Името е задолжително");
+      return;
+    }
+
+    if (!employee.last_name.trim()) {
+      alert("Презимето е задолжително");
+      return;
+    }
+
+    if (!employee.department.trim()) {
+      alert("Одделот е задолжителен");
+      return;
+    }
+
+    if (!employee.position.trim()) {
+      alert("Позицијата е задолжителна");
+      return;
+    }
+
+    if (!employee.employment_date) {
+      alert("Датумот на вработување е задолжителен");
+      return;
+    }
+
+    if (employee.allowed_latitude === "" || isNaN(employee.allowed_latitude)) {
+      alert("Внесете валидна latitude");
+      return;
+    }
+
+    if (
+      employee.allowed_longitude === "" ||
+      isNaN(employee.allowed_longitude)
+    ) {
+      alert("Внесете валидна longitude");
+      return;
+    }
+
+    if (
+      employee.allowed_radius_meters === "" ||
+      isNaN(employee.allowed_radius_meters) ||
+      employee.allowed_radius_meters <= 0
+    ) {
+      alert("Радиусот мора да биде поголем од 0");
+      return;
+    }
+
+    try {
+      const response = await createEmployee(createDraft);
+
+      setCreateModalOpen(false);
+
+      const data = await getAllEmployees();
+
+      const mapped = Array.isArray(data)
+        ? data.map(mapEmployeeFromBackend)
+        : [];
+
+      setEmployees(mapped);
+    } catch (err) {
+      console.error("Error creating employee:", err);
+      alert(
+        "Грешка при креирање на вработен: " + (err.message || "Unknown error"),
+      );
+    }
+  };
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -195,6 +302,7 @@ export default function Employees() {
             <button
               type="button"
               className="employees__btn employees__btn--primary"
+              onClick={openCreateModal}
             >
               + Внеси нов вработен
             </button>
@@ -250,7 +358,7 @@ export default function Employees() {
                           <button
                             type="button"
                             className="employees__edit"
-                            onClick={() => openModal(e)}
+                            onClick={() => openEditModal(e)}
                           >
                             Уреди
                           </button>
@@ -265,12 +373,22 @@ export default function Employees() {
         </div>
       </section>
 
+      {/* Edit Modal */}
       <EmployeeEditModal
-        open={modalOpen}
-        draft={draft}
-        onChange={setDraft}
-        onClose={closeModal}
-        onSave={saveModal}
+        open={editModalOpen}
+        draft={editDraft}
+        onChange={setEditDraft}
+        onClose={closeEditModal}
+        onSave={saveEditModal}
+      />
+
+      {/* Create Modal */}
+      <CreateEmployeeModal
+        open={createModalOpen}
+        draft={createDraft}
+        onChange={setCreateDraft}
+        onClose={() => setCreateModalOpen(false)}
+        onSave={saveCreateModal}
       />
     </div>
   );

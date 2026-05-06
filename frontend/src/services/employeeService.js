@@ -34,19 +34,6 @@ export async function getEmployeeById(id) {
   return res.json();
 }
 
-// CREATE employee
-export async function createEmployee(data) {
-  const res = await fetch(BASE_URL, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) throw new Error("Failed to create employee");
-
-  return res.json();
-}
-
 // UPDATE employee
 export async function updateEmployee(id, data) {
   const res = await fetch(`${BASE_URL}/${id}`, {
