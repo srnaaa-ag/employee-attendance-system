@@ -18,56 +18,19 @@ const checkBadgeClass = (kind) =>
         ? "employees__badge employees__badge--ok"
         : "employees__badge employees__badge--warn";
 
-function createDefaultWeek() {
-  const work = { isOff: false, start: "08:00", end: "16:00" };
-  const off = { isOff: true, start: "08:00", end: "16:00" };
+function normalizeTime(value, fallback) {
+  if (!value) return fallback;
 
-  return {
-    mon: { ...work },
-    tue: { ...work },
-    wed: { ...work },
-    thu: { ...work },
-    fri: { ...work },
-    sat: { ...off },
-    sun: { ...off },
-  };
+  const text = String(value);
+
+  if (/^\d{2}:\d{2}$/.test(text)) return text;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(text)) return text.slice(0, 5);
+
+  return fallback;
 }
 
-function cloneWeek(w) {
-  const out = {};
-  for (const k of Object.keys(w)) {
-    out[k] = { ...w[k] };
-  }
-  return out;
-}
-
-function summarizeWeek(week) {
-  const { mon, tue, wed, thu, fri, sat, sun } = week;
-  const workingDays = [mon, tue, wed, thu, fri].filter((d) => !d.isOff);
-
-  if (workingDays.length === 0) return "—";
-
-  const { start, end } = workingDays[0];
-
-  const same =
-      workingDays.every((d) => d.start === start && d.end === end) &&
-      [mon, tue, wed, thu, fri].every(
-          (d) => d.isOff || (d.start === start && d.end === end)
-      );
-
-  const onlyWeekdaysOn =
-      !mon.isOff &&
-      !tue.isOff &&
-      !wed.isOff &&
-      !thu.isOff &&
-      !fri.isOff &&
-      sat.isOff &&
-      sun.isOff;
-
-  if (same && onlyWeekdaysOn) return `${start} – ${end} (Пон–Пет)`;
-  if (same) return `${start} – ${end}`;
-
-  return `${start} – ${end} (+други смени)`;
+function formatSchedule(start, end) {
+  return `${normalizeTime(start, "08:00")} – ${normalizeTime(end, "16:00")}`;
 }
 
 function fileToDataUrl(file) {
@@ -82,11 +45,24 @@ function fileToDataUrl(file) {
 }
 
 function mapEmployeeFromBackend(e) {
-  const week = createDefaultWeek();
-
   const firstName = e.firstName ?? e.first_name ?? "";
   const lastName = e.lastName ?? e.last_name ?? "";
   const profilePicture = e.profilePicture ?? e.user?.profilePicture ?? null;
+
+  const workStartTime = normalizeTime(
+      e.work_start_time ?? e.workStartTime,
+      "08:00"
+  );
+
+  const workEndTime = normalizeTime(
+      e.work_end_time ?? e.workEndTime,
+      "16:00"
+  );
+
+  const time =
+      e.workScheduleLabel ??
+      e.work_schedule_label ??
+      formatSchedule(workStartTime, workEndTime);
 
   return {
     id: String(e.id),
@@ -99,6 +75,17 @@ function mapEmployeeFromBackend(e) {
     position: e.position ?? "—",
     employmentDate: e.employmentDate ?? e.employment_date ?? "",
 
+    allowedLatitude: Number(e.allowed_latitude ?? e.allowedLatitude ?? 41.9981),
+    allowedLongitude: Number(
+        e.allowed_longitude ?? e.allowedLongitude ?? 21.4254
+    ),
+    allowedRadiusMeters: Number(
+        e.allowed_radius_meters ?? e.allowedRadiusMeters ?? 100
+    ),
+
+    workStartTime,
+    workEndTime,
+
     email: e.email ?? e.user?.email ?? "",
     phone: e.phone ?? e.user?.phone ?? "",
     role: e.role ?? e.user?.role ?? "EMPLOYEE",
@@ -110,8 +97,7 @@ function mapEmployeeFromBackend(e) {
 
     checkLabel: "—",
     checkKind: "ontime",
-    week,
-    time: summarizeWeek(week),
+    time,
   };
 }
 
@@ -127,11 +113,16 @@ function buildDraft(emp) {
     position: emp.position,
     employmentDate: emp.employmentDate ?? "",
 
+    allowedLatitude: emp.allowedLatitude ?? 41.9981,
+    allowedLongitude: emp.allowedLongitude ?? 21.4254,
+    allowedRadiusMeters: emp.allowedRadiusMeters ?? 100,
+
+    workStartTime: emp.workStartTime ?? "08:00",
+    workEndTime: emp.workEndTime ?? "16:00",
+
     email: emp.email ?? "",
     phone: emp.phone ?? "",
     role: emp.role ?? "EMPLOYEE",
-
-    week: cloneWeek(emp.week),
 
     photoFile: null,
     photoPreview: emp.profilePicture || null,
@@ -159,6 +150,8 @@ function emptyCreateDraft() {
       allowed_latitude: 41.9981,
       allowed_longitude: 21.4254,
       allowed_radius_meters: 100.0,
+      work_start_time: "08:00",
+      work_end_time: "16:00",
     },
   };
 }
@@ -205,8 +198,27 @@ export default function Employees() {
     setEditModalOpen(false);
   }, [editSaving]);
 
+  const openCreateModal = useCallback(() => {
+    setCreateDraft(emptyCreateDraft());
+    setCreateModalOpen(true);
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    setCreateModalOpen(false);
+  }, []);
+
   const saveEditModal = useCallback(async () => {
     if (!editDraft) return;
+
+    if (!editDraft.workStartTime) {
+      alert("Почетокот на работното време е задолжителен.");
+      return;
+    }
+
+    if (!editDraft.workEndTime) {
+      alert("Крајот на работното време е задолжителен.");
+      return;
+    }
 
     setEditSaving(true);
 
@@ -221,19 +233,21 @@ export default function Employees() {
         nextProfilePicture = await fileToDataUrl(editDraft.photoFile);
       }
 
-      const [firstNameFromName, ...lastNameParts] = String(editDraft.name || "")
-          .trim()
-          .split(" ");
-
       const payload = {
-        first_name: editDraft.firstName || firstNameFromName || "",
-        last_name: editDraft.lastName || lastNameParts.join(" ") || "",
+        first_name: editDraft.firstName || "",
+        last_name: editDraft.lastName || "",
         department: editDraft.dept,
         position: editDraft.position,
-        employment_date: editDraft.employmentDate || new Date().toISOString().slice(0, 10),
-        allowed_latitude: 41.9981,
-        allowed_longitude: 21.4254,
-        allowed_radius_meters: 100.0,
+        employment_date:
+            editDraft.employmentDate || new Date().toISOString().slice(0, 10),
+
+        allowed_latitude: editDraft.allowedLatitude,
+        allowed_longitude: editDraft.allowedLongitude,
+        allowed_radius_meters: editDraft.allowedRadiusMeters,
+
+        work_start_time: editDraft.workStartTime,
+        work_end_time: editDraft.workEndTime,
+
         user: {
           email: editDraft.email,
           phone: editDraft.phone,
@@ -257,16 +271,14 @@ export default function Employees() {
       setEditModalOpen(false);
     } catch (err) {
       console.error("Error updating employee:", err);
-      alert("Грешка при ажурирање на вработен: " + (err.message || "Unknown error"));
+      alert(
+          "Грешка при ажурирање на вработен: " +
+          (err.message || "Unknown error")
+      );
     } finally {
       setEditSaving(false);
     }
   }, [editDraft]);
-
-  const openCreateModal = () => {
-    setCreateDraft(emptyCreateDraft());
-    setCreateModalOpen(true);
-  };
 
   const saveCreateModal = async () => {
     const { user, employee } = createDraft;
@@ -318,6 +330,16 @@ export default function Employees() {
       return;
     }
 
+    if (!employee.work_start_time) {
+      alert("Почетокот на работното време е задолжителен");
+      return;
+    }
+
+    if (!employee.work_end_time) {
+      alert("Крајот на работното време е задолжителен");
+      return;
+    }
+
     if (employee.allowed_latitude === "" || isNaN(employee.allowed_latitude)) {
       alert("Внесете валидна latitude");
       return;
@@ -346,7 +368,10 @@ export default function Employees() {
       await loadEmployees();
     } catch (err) {
       console.error("Error creating employee:", err);
-      alert("Грешка при креирање на вработен: " + (err.message || "Unknown error"));
+      alert(
+          "Грешка при креирање на вработен: " +
+          (err.message || "Unknown error")
+      );
     }
   };
 
@@ -400,24 +425,30 @@ export default function Employees() {
                   <tbody>
                   {employees.map((e) => {
                     const faceKind = e.hasFacePhoto ? "registered" : "update";
-                    const faceLabel = e.hasFacePhoto ? "Регистрирано" : "Ажурирај";
+                    const faceLabel = e.hasFacePhoto
+                        ? "Регистрирано"
+                        : "Ажурирај";
 
                     return (
                         <tr key={e.id}>
                           <td className="employees__cell-strong">{e.name}</td>
                           <td>{e.dept}</td>
                           <td>{e.position}</td>
+
                           <td>
                           <span className={faceBadgeClass(faceKind)}>
                             {faceLabel}
                           </span>
                           </td>
+
                           <td className="employees__cell-mono">{e.time}</td>
+
                           <td>
                           <span className={checkBadgeClass(e.checkKind)}>
                             {e.checkLabel}
                           </span>
                           </td>
+
                           <td className="employees__cell-actions">
                             <button
                                 type="button"
@@ -449,7 +480,7 @@ export default function Employees() {
             open={createModalOpen}
             draft={createDraft}
             onChange={setCreateDraft}
-            onClose={() => setCreateModalOpen(false)}
+            onClose={closeCreateModal}
             onSave={saveCreateModal}
         />
       </div>

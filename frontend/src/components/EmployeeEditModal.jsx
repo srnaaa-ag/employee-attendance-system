@@ -1,15 +1,5 @@
 import { useEffect, useRef } from "react";
 
-const WEEK_ROWS = [
-    { key: "mon", label: "Понеделник" },
-    { key: "tue", label: "Вторник" },
-    { key: "wed", label: "Среда" },
-    { key: "thu", label: "Четврток" },
-    { key: "fri", label: "Петок" },
-    { key: "sat", label: "Сабота" },
-    { key: "sun", label: "Недела" },
-];
-
 export default function EmployeeEditModal({
                                               open,
                                               draft,
@@ -23,8 +13,6 @@ export default function EmployeeEditModal({
 
     useEffect(() => {
         if (!open) return;
-
-        closeBtnRef.current?.focus();
 
         const onKey = (e) => {
             if (e.key === "Escape") onClose();
@@ -42,32 +30,6 @@ export default function EmployeeEditModal({
     }, [open, onClose]);
 
     if (!open || !draft) return null;
-
-    function updateWeekDay(dayKey, field, value) {
-        onChange({
-            ...draft,
-            week: {
-                ...draft.week,
-                [dayKey]: { ...draft.week[dayKey], [field]: value },
-            },
-        });
-    }
-
-    function applySameHoursToWeekdays() {
-        const mon = draft.week.mon;
-        const next = { ...draft.week };
-
-        ["mon", "tue", "wed", "thu", "fri"].forEach((k) => {
-            next[k] = {
-                ...next[k],
-                isOff: mon.isOff,
-                start: mon.start,
-                end: mon.end,
-            };
-        });
-
-        onChange({ ...draft, week: next });
-    }
 
     function onPhotoPick(e) {
         const file = e.target.files?.[0];
@@ -164,96 +126,107 @@ export default function EmployeeEditModal({
                 </p>
 
                 <div className="emp-modal__body">
-                    <div className="emp-modal__grid2">
-                        <div className="emp-modal__field">
-                            <label htmlFor="emp-dept">Оддел</label>
-                            <input
-                                id="emp-dept"
-                                type="text"
-                                value={draft.dept}
-                                onChange={(e) =>
-                                    onChange({ ...draft, dept: e.target.value })
-                                }
-                                autoComplete="organization"
-                            />
-                        </div>
-
-                        <div className="emp-modal__field">
-                            <label htmlFor="emp-position">Позиција</label>
-                            <input
-                                id="emp-position"
-                                type="text"
-                                value={draft.position}
-                                onChange={(e) =>
-                                    onChange({ ...draft, position: e.target.value })
-                                }
-                            />
-                        </div>
-                    </div>
-
                     <fieldset className="emp-modal__fieldset">
-                        <legend>Работна смена за неделата</legend>
+                        <legend>Основни податоци</legend>
 
-                        <p className="emp-modal__hint">
-                            За секој ден одреди почеток и крај или означи дека е слободен.
-                        </p>
-
-                        <button
-                            type="button"
-                            className="emp-modal__linkish"
-                            onClick={applySameHoursToWeekdays}
-                        >
-                            Примени ги часовите од понеделник на сите работни денови (Пон–Пет)
-                        </button>
-
-                        <div className="emp-modal__week">
-                            <div className="emp-modal__week-head" aria-hidden>
-                                <span>Ден</span>
-                                <span>Слободен</span>
-                                <span>Од</span>
-                                <span>До</span>
+                        <div className="emp-modal__grid2">
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-first-name">Име</label>
+                                <input
+                                    id="emp-first-name"
+                                    type="text"
+                                    value={draft.firstName}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, firstName: e.target.value })
+                                    }
+                                />
                             </div>
 
-                            {WEEK_ROWS.map(({ key, label }) => {
-                                const row = draft.week[key];
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-last-name">Презиме</label>
+                                <input
+                                    id="emp-last-name"
+                                    type="text"
+                                    value={draft.lastName}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, lastName: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
 
-                                return (
-                                    <div key={key} className="emp-modal__week-row">
-                                        <span className="emp-modal__week-day">{label}</span>
+                        <div className="emp-modal__grid2">
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-dept">Оддел</label>
+                                <input
+                                    id="emp-dept"
+                                    type="text"
+                                    value={draft.dept}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, dept: e.target.value })
+                                    }
+                                    autoComplete="organization"
+                                />
+                            </div>
 
-                                        <label className="emp-modal__week-off">
-                                            <input
-                                                type="checkbox"
-                                                checked={row.isOff}
-                                                onChange={(e) =>
-                                                    updateWeekDay(key, "isOff", e.target.checked)
-                                                }
-                                            />
-                                            <span>слободен</span>
-                                        </label>
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-position">Позиција</label>
+                                <input
+                                    id="emp-position"
+                                    type="text"
+                                    value={draft.position}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, position: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
 
-                                        <input
-                                            type="time"
-                                            className="emp-modal__week-time"
-                                            value={row.start}
-                                            disabled={row.isOff}
-                                            onChange={(e) =>
-                                                updateWeekDay(key, "start", e.target.value)
-                                            }
-                                        />
+                        <div className="emp-modal__field">
+                            <label htmlFor="emp-employment-date">Датум на вработување</label>
+                            <input
+                                id="emp-employment-date"
+                                type="date"
+                                value={draft.employmentDate}
+                                onChange={(e) =>
+                                    onChange({ ...draft, employmentDate: e.target.value })
+                                }
+                            />
+                        </div>
+                    </fieldset>
 
-                                        <input
-                                            type="time"
-                                            className="emp-modal__week-time"
-                                            value={row.end}
-                                            disabled={row.isOff}
-                                            onChange={(e) =>
-                                                updateWeekDay(key, "end", e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                );
-                            })}
+                    <fieldset className="emp-modal__fieldset">
+                        <legend>Работно време</legend>
+
+                        <p className="emp-modal__hint">
+                            Ова работно време ќе се прикажува во евиденцијата и ќе се користи
+                            за проверка на доцнење.
+                        </p>
+
+                        <div className="emp-modal__grid2">
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-work-start">Почеток</label>
+                                <input
+                                    id="emp-work-start"
+                                    type="time"
+                                    value={draft.workStartTime || "08:00"}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, workStartTime: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="emp-modal__field">
+                                <label htmlFor="emp-work-end">Крај</label>
+                                <input
+                                    id="emp-work-end"
+                                    type="time"
+                                    value={draft.workEndTime || "16:00"}
+                                    onChange={(e) =>
+                                        onChange({ ...draft, workEndTime: e.target.value })
+                                    }
+                                />
+                            </div>
                         </div>
                     </fieldset>
 
@@ -261,8 +234,8 @@ export default function EmployeeEditModal({
                         <legend>Фотографија за препознавање на лице</legend>
 
                         <p className="emp-modal__hint">
-                            Поддржани се JPG, PNG или WebP. Сликата се користи како референтна
-                            фотографија при check-in/check-out со камера.
+                            Поддржани се JPG, PNG или WebP. Сликата се користи како
+                            референтна фотографија при check-in/check-out со камера.
                         </p>
 
                         {hasOriginalPhoto && !draft.photoCleared ? (

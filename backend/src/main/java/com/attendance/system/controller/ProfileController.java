@@ -11,6 +11,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalTime;
+
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
@@ -56,6 +58,9 @@ public class ProfileController {
         String profilePicture = user != null ? user.getProfilePicture() : null;
         boolean hasFacePhoto = profilePicture != null && !profilePicture.isBlank();
 
+        LocalTime workStart = EmployeeService.getWorkStart(employee);
+        LocalTime workEnd = EmployeeService.getWorkEnd(employee);
+
         return new ProfileDTO(
                 employee.getId(),
                 employee.getFirst_name(),
@@ -66,6 +71,9 @@ public class ProfileController {
                 employee.getAllowed_latitude(),
                 employee.getAllowed_longitude(),
                 employee.getAllowed_radius_meters(),
+                workStart,
+                workEnd,
+                EmployeeService.formatWorkSchedule(workStart, workEnd),
                 user != null ? user.getEmail() : null,
                 user != null ? user.getPhone() : null,
                 user != null && user.getRole() != null ? user.getRole().name() : null,

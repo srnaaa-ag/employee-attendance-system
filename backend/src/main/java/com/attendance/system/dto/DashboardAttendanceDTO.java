@@ -12,11 +12,36 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class DashboardAttendanceDTO {
-    /** HH:mm или null ако нема доаѓање денес */
+
+    /** HH:mm или null ако нема check-in денес */
     private String todayCheckIn;
-    /** H:MM (на пр. 6:45) или null */
+
+    /** HH:mm или null ако нема check-out денес */
+    private String todayCheckOut;
+
+    /** H:MM или null ако денот не е завршен */
     private String todayWorkedHours;
-    /** Вкупно доцнење во месецот како HH:mm (сума на минути после 08:00 за записи со late во статус) */
+
+    /** Вкупно доцнење во месецот како HH:mm */
     private String monthLateTotal;
+
+    /**
+     * NOT_STARTED = нема check-in денес
+     * CHECKED_IN = има check-in, нема check-out
+     * COMPLETED = има check-in и check-out
+     */
+    private String attendanceState;
+
+    /**
+     * Следна очекувана акција за frontend:
+     * CHECK_IN / CHECK_OUT / DONE
+     */
+    private String nextAction;
+
+    /** Засега default работно време */
+    private String workStartTime;
+    private String workEndTime;
+    private String workScheduleLabel;
+
     private List<DashboardRecentRowDTO> recent;
 }

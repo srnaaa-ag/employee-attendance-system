@@ -1,11 +1,12 @@
 package com.attendance.system.model.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "employees")
@@ -41,6 +42,12 @@ public class Employee {
 
     @NotNull(message = "Allowed radius is required")
     private Double allowed_radius_meters;
+
+    @Column(name = "work_start_time")
+    private LocalTime work_start_time;
+
+    @Column(name = "work_end_time")
+    private LocalTime work_end_time;
 
     @OneToOne
     @JoinColumn(name = "user_id")

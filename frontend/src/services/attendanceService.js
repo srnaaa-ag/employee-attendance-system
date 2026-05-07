@@ -1,23 +1,87 @@
 import { fetchWithAuth } from "./api";
 
+async function parseErrorMessage(response) {
+  const text = await response.text();
+
+  if (!text) {
+    return `HTTP ${response.status}`;
+  }
+
+  try {
+    const body = JSON.parse(text);
+    return body.message || body.error || text;
+  } catch {
+    return text;
+  }
+}
+
 /**
- * @param {number} [recentLimit=10]
- * @returns {Promise<{
- *   todayCheckIn: string | null;
- *   todayWorkedHours: string | null;
- *   monthLateTotal: string;
- *   recent: Array<{ date: string; checkIn: string; checkOut: string; status: string }>;
- * }>}
+ * Dashboard за најавениот employee.
+ *
+ * Очекува backend response:
+ * {
+ *   todayCheckIn,
+ *   todayCheckOut,
+ *   todayWorkedHours,
+ *   monthLateTotal,
+ *   attendanceState,
+ *   nextAction,
+ *   workStartTime,
+ *   workEndTime,
+ *   workScheduleLabel,
+ *   recent
+ * }
  */
 export async function getMyDashboard(recentLimit = 10) {
-  const res = await fetchWithAuth(`/attendance/me/dashboard?recentLimit=${recentLimit}`);
-  if (res.status === 404) {
-    const t = await res.text();
-    throw new Error(t || "Нема поврзан запис за вработен.");
+  const response = await fetchWithAuth(
+      `/attendance/me/dashboard?recentLimit=${recentLimit}`
+  );
+
+  if (response.status === 404) {
+    throw new Error("Нема поврзан запис за вработен.");
   }
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t || `HTTP ${res.status}`);
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
   }
-  return res.json();
+
+  return response.json();
+}
+
+/**
+ * Прави CHECK IN после успешно лице + локација.
+ */
+export async function checkIn(latitude, longitude) {
+  const response = await fetchWithAuth("/attendance/check-in", {
+    method: "POST",
+    body: JSON.stringify({
+      latitude,
+      longitude,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
+}
+
+/**
+ * Прави CHECK OUT после успешно лице + локација.
+ */
+export async function checkOut(latitude, longitude) {
+  const response = await fetchWithAuth("/attendance/check-out", {
+    method: "POST",
+    body: JSON.stringify({
+      latitude,
+      longitude,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+
+  return response.json();
 }

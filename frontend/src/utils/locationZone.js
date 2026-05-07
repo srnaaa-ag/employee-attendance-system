@@ -1,4 +1,4 @@
-/** Работно место (Скопје по подразбирање). Постави VITE_WORKPLACE_LAT, VITE_WORKPLACE_LNG, VITE_WORKPLACE_RADIUS_M во .env */
+/** Работно место fallback, ако employee нема зачувана локација */
 export function getWorkplace() {
   return {
     lat: Number(import.meta.env.VITE_WORKPLACE_LAT ?? 41.9965),
@@ -8,6 +8,43 @@ export function getWorkplace() {
 
 export function getMaxRadiusMeters() {
   return Number(import.meta.env.VITE_WORKPLACE_RADIUS_M ?? 5000);
+}
+
+export function getDefaultWorkplaceZone() {
+  return {
+    lat: getWorkplace().lat,
+    lng: getWorkplace().lng,
+    radiusM: getMaxRadiusMeters(),
+  };
+}
+
+export function getEmployeeWorkplaceZone(profile) {
+  const lat = Number(
+      profile?.allowed_latitude ??
+      profile?.allowedLatitude ??
+      profile?.employee?.allowed_latitude ??
+      profile?.employee?.allowedLatitude
+  );
+
+  const lng = Number(
+      profile?.allowed_longitude ??
+      profile?.allowedLongitude ??
+      profile?.employee?.allowed_longitude ??
+      profile?.employee?.allowedLongitude
+  );
+
+  const radiusM = Number(
+      profile?.allowed_radius_meters ??
+      profile?.allowedRadiusMeters ??
+      profile?.employee?.allowed_radius_meters ??
+      profile?.employee?.allowedRadiusMeters
+  );
+
+  if (Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(radiusM) && radiusM > 0) {
+    return { lat, lng, radiusM };
+  }
+
+  return getDefaultWorkplaceZone();
 }
 
 function toRad(d) {
@@ -29,9 +66,11 @@ export function haversineMeters(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-export function isWithinWorkplace(lat, lng) {
-  const wp = getWorkplace();
-  return haversineMeters(lat, lng, wp.lat, wp.lng) <= getMaxRadiusMeters();
+export function isWithinWorkplace(lat, lng, workplaceZone = getDefaultWorkplaceZone()) {
+  return (
+      haversineMeters(lat, lng, workplaceZone.lat, workplaceZone.lng) <=
+      workplaceZone.radiusM
+  );
 }
 
 /**

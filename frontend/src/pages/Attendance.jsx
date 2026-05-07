@@ -3,14 +3,19 @@ import AttendanceLocationMap from "../components/AttendanceLocationMap.jsx";
 import { IconCamera, IconLogout } from "../components/icons/NavIcons.jsx";
 import { getMyProfile } from "../services/profileService.js";
 import {
+  checkIn,
+  checkOut,
+  getMyDashboard,
+} from "../services/attendanceService.js";
+import {
   detectLiveRecognition,
   imageToFaceDescriptor,
   loadFaceApiModels,
   reportFaceRecognitionResult,
 } from "../services/faceRecognitionService.js";
 import {
-  getMaxRadiusMeters,
-  getWorkplace,
+  getDefaultWorkplaceZone,
+  getEmployeeWorkplaceZone,
   isWithinWorkplace,
   requestGeolocation,
 } from "../utils/locationZone.js";
@@ -105,6 +110,24 @@ async function startCamera(videoRef, streamRef) {
   return stream;
 }
 
+function getActionLabel(nextAction) {
+  if (nextAction === "CHECK_OUT") return "CHECK OUT";
+  if (nextAction === "DONE") return "ЗАВРШЕНО";
+  return "CHECK IN";
+}
+
+function getActionMessage(nextAction) {
+  if (nextAction === "CHECK_OUT") {
+    return "Скенирањето ќе направи check-out.";
+  }
+
+  if (nextAction === "DONE") {
+    return "Денешната евиденција е веќе завршена.";
+  }
+
+  return "Скенирањето ќе направи check-in.";
+}
+
 export default function Attendance() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -120,15 +143,29 @@ export default function Attendance() {
   const cachedPhotoRef = useRef(null);
   const lastMetricsRef = useRef(null);
   const detectBusyRef = useRef(false);
+  const actionSubmittingRef = useRef(false);
+
+  const dashboardRef = useRef(null);
 
   const [streamActive, setStreamActive] = useState(false);
   const [loadingModel, setLoadingModel] = useState(false);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [faceBox, setFaceBox] = useState(null);
   const [locationInfo, setLocationInfo] = useState(null);
   const [scanError, setScanError] = useState(null);
   const [liveHint, setLiveHint] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
+  const [activeWorkplace, setActiveWorkplace] = useState(getDefaultWorkplaceZone());
+
+  const nextAction = dashboard?.nextAction ?? "CHECK_IN";
+  const isDoneToday = nextAction === "DONE";
+  const workScheduleLabel =
+      dashboard?.workScheduleLabel ??
+      (dashboard?.workStartTime && dashboard?.workEndTime
+          ? `${dashboard.workStartTime} - ${dashboard.workEndTime}`
+          : "Се вчитува...");
 
   const stopStream = useCallback(() => {
     if (detectIntervalRef.current) {
@@ -143,6 +180,7 @@ export default function Attendance() {
 
     streakRef.current = 0;
     detectBusyRef.current = false;
+    actionSubmittingRef.current = false;
 
     const stream = streamRef.current;
 
@@ -161,13 +199,29 @@ export default function Attendance() {
     setLiveHint(null);
   }, []);
 
+  const loadDashboard = useCallback(async () => {
+    try {
+      setDashboardLoading(true);
+      const data = await getMyDashboard(10);
+      dashboardRef.current = data;
+      setDashboard(data);
+    } catch (error) {
+      console.error("Dashboard loading failed:", error);
+      setScanError(error.message || "Не може да се вчита attendance status.");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
+    loadDashboard();
+
     loadFaceApiModels().catch((error) => {
       console.warn("Face API models preload failed:", error);
     });
 
     return () => stopStream();
-  }, [stopStream]);
+  }, [loadDashboard, stopStream]);
 
   const sendRecognitionReport = useCallback(async (recognitionSuccessful) => {
     const coords = locationCoordsRef.current;
@@ -232,12 +286,18 @@ export default function Attendance() {
       [sendRecognitionReport, stopStream]
   );
 
-  const prepareLocation = async () => {
-    const position = await requestGeolocation();
+  const prepareLocation = async (profilePromise) => {
+    const [profile, position] = await Promise.all([
+      profilePromise,
+      requestGeolocation(),
+    ]);
+
+    const employeeWorkplace = getEmployeeWorkplaceZone(profile);
+    setActiveWorkplace(employeeWorkplace);
 
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
-    const inZone = isWithinWorkplace(lat, lng);
+    const inZone = isWithinWorkplace(lat, lng, employeeWorkplace);
 
     locationOkRef.current = inZone;
     locationCoordsRef.current = { lat, lng };
@@ -250,8 +310,12 @@ export default function Attendance() {
     });
   };
 
-  const prepareReferenceDescriptor = async () => {
-    const profile = await getMyProfile();
+  const prepareReferenceDescriptor = async (profilePromise) => {
+    const profile = await profilePromise;
+
+    const employeeWorkplace = getEmployeeWorkplaceZone(profile);
+    setActiveWorkplace(employeeWorkplace);
+
     const photo = getProfilePhoto(profile);
 
     if (!photo) {
@@ -276,6 +340,33 @@ export default function Attendance() {
     return descriptor;
   };
 
+  const submitAttendanceAction = useCallback(async () => {
+    const coords = locationCoordsRef.current;
+
+    if (!coords) {
+      throw new Error("Нема прочитана локација за евиденција.");
+    }
+
+    const action = dashboardRef.current?.nextAction ?? "CHECK_IN";
+
+    if (action === "DONE") {
+      throw new Error("Денешната евиденција е веќе завршена.");
+    }
+
+    if (action === "CHECK_OUT") {
+      setLiveHint("Лицето и локацијата се потврдени. Се прави CHECK OUT...");
+      const updatedDashboard = await checkOut(coords.lat, coords.lng);
+      dashboardRef.current = updatedDashboard;
+      setDashboard(updatedDashboard);
+      return;
+    }
+
+    setLiveHint("Лицето и локацијата се потврдени. Се прави CHECK IN...");
+    const updatedDashboard = await checkIn(coords.lat, coords.lng);
+    dashboardRef.current = updatedDashboard;
+    setDashboard(updatedDashboard);
+  }, []);
+
   const beginDetectionLoop = useCallback(() => {
     timeoutRef.current = window.setTimeout(() => {
       finishScan(
@@ -292,7 +383,8 @@ export default function Attendance() {
           !videoElement ||
           videoElement.readyState < 2 ||
           !reference ||
-          detectBusyRef.current
+          detectBusyRef.current ||
+          actionSubmittingRef.current
       ) {
         return;
       }
@@ -327,10 +419,26 @@ export default function Attendance() {
           setLiveHint("Лицето се препознава, остани мирно...");
 
           if (streakRef.current >= FACE_STREAK) {
-            if (locationOkRef.current) {
+            if (!locationOkRef.current) {
+              finishScan(
+                  false,
+                  "Лицето е препознаено, но моменталната локација не е во дозволената зона на овој вработен."
+              );
+              return;
+            }
+
+            actionSubmittingRef.current = true;
+
+            try {
+              await submitAttendanceAction();
               finishScan(true);
-            } else {
-              finishScan(false, "Лицето е препознаено, но локацијата не е дозволена.");
+            } catch (error) {
+              finishScan(
+                  false,
+                  error instanceof Error
+                      ? error.message
+                      : "Неуспешно зачувување на attendance евиденција."
+              );
             }
           }
         } else {
@@ -344,9 +452,15 @@ export default function Attendance() {
         detectBusyRef.current = false;
       }
     }, DETECT_INTERVAL_MS);
-  }, [finishScan]);
+  }, [finishScan, submitAttendanceAction]);
 
   const startScan = async () => {
+    if (isDoneToday) {
+      setScanResult("error");
+      setScanError("Денешната евиденција е веќе завршена.");
+      return;
+    }
+
     scanFinishedRef.current = false;
 
     setScanResult(null);
@@ -360,13 +474,16 @@ export default function Attendance() {
     locationCoordsRef.current = null;
     employeeIdRef.current = null;
     lastMetricsRef.current = null;
+    actionSubmittingRef.current = false;
 
     try {
       await startCamera(videoRef, streamRef);
       setStreamActive(true);
-      setLiveHint("Камерата е активна. Се подготвува препознавање...");
+      setLiveHint("Камерата е активна. Се подготвува препознавање и локација...");
 
-      const locationPromise = prepareLocation().catch((error) => {
+      const profilePromise = getMyProfile(true);
+
+      const locationPromise = prepareLocation(profilePromise).catch((error) => {
         let message = "Грешка при читање на локација.";
 
         if (typeof error === "object" && error !== null && "code" in error) {
@@ -382,21 +499,23 @@ export default function Attendance() {
         throw new Error(message);
       });
 
-      const descriptorPromise = prepareReferenceDescriptor().catch((error) => {
-        if (error instanceof Error && error.message === "NO_FACE_IN_REFERENCE") {
-          throw new Error(
-              "На зачуваната слика не е детектирано лице. Администратор треба да прикачи појасна фотографија каде лицето е добро видливо."
-          );
-        }
+      const descriptorPromise = prepareReferenceDescriptor(profilePromise).catch(
+          (error) => {
+            if (error instanceof Error && error.message === "NO_FACE_IN_REFERENCE") {
+              throw new Error(
+                  "На зачуваната слика не е детектирано лице. Администратор треба да прикачи појасна фотографија каде лицето е добро видливо."
+              );
+            }
 
-        if (error instanceof Error) {
-          throw error;
-        }
+            if (error instanceof Error) {
+              throw error;
+            }
 
-        throw new Error(
-            "Моделите или зачуваната слика не можат да се обработат. Провери интернет конекција и дали сликата е валидна."
-        );
-      });
+            throw new Error(
+                "Моделите или зачуваната слика не можат да се обработат. Провери интернет конекција и дали сликата е валидна."
+            );
+          }
+      );
 
       await Promise.all([locationPromise, descriptorPromise]);
 
@@ -422,7 +541,7 @@ export default function Attendance() {
     }
   };
 
-  const handleCheckout = () => {
+  const resetScanState = () => {
     scanFinishedRef.current = false;
     stopStream();
     setScanResult(null);
@@ -431,9 +550,6 @@ export default function Attendance() {
     locationOkRef.current = false;
     locationCoordsRef.current = null;
   };
-
-  const workplace = getWorkplace();
-  const radius = getMaxRadiusMeters();
 
   return (
       <div className="attendance">
@@ -481,19 +597,17 @@ export default function Attendance() {
                   type="button"
                   className="attendance__btn-scan"
                   onClick={startScan}
-                  disabled={loadingModel || scanning}
+                  disabled={loadingModel || scanning || dashboardLoading || isDoneToday}
               >
                 <IconCamera size={20} />
                 {loadingModel
                     ? "Подготовка…"
                     : scanning
                         ? "Скенирање…"
-                        : "Почни со скенирање"}
+                        : getActionLabel(nextAction)}
               </button>
 
-              {liveHint && (
-                  <p className="attendance__hint-live">{liveHint}</p>
-              )}
+              {liveHint && <p className="attendance__hint-live">{liveHint}</p>}
 
               {scanError && !scanning && scanResult === "error" && (
                   <p className="attendance__scan-err" role="alert">
@@ -509,8 +623,11 @@ export default function Attendance() {
 
               <div className="attendance__map-wrap">
                 <AttendanceLocationMap
-                    workplace={workplace}
-                    radiusM={radius}
+                    workplace={{
+                      lat: activeWorkplace.lat,
+                      lng: activeWorkplace.lng,
+                    }}
+                    radiusM={activeWorkplace.radiusM}
                     userLocation={
                       locationInfo
                           ? {
@@ -533,7 +650,7 @@ export default function Attendance() {
               )}
 
               <p className="attendance__zone-hint">
-                Дозволена зона: ~{Math.round(radius / 1000)} km околу Скопје
+                Дозволена зона: ~{Math.round(activeWorkplace.radiusM)} m околу локацијата на вработениот
               </p>
 
               {locationInfo ? (
@@ -554,8 +671,8 @@ export default function Attendance() {
                   {locationInfo.inZone ? <CheckMini /> : "!"}
                 </span>
                     {locationInfo.inZone
-                        ? "Локацијата е во зоната"
-                        : "Надвор од дозволената зона"}
+                        ? "Локацијата е во дозволената зона за овој вработен"
+                        : "Надвор од дозволената зона за овој вработен"}
                   </div>
               ) : (
                   <div className="attendance__loc-pending">
@@ -569,12 +686,33 @@ export default function Attendance() {
                 Статус и акција
               </h2>
 
-              <p className="attendance__shift">Работно време: 08:00 - 16:00</p>
-              <p className="attendance__hint">Имате 2 чекори за евиденција</p>
+              <p className="attendance__shift">
+                Работно време: {workScheduleLabel}
+              </p>
+
+              {dashboard?.todayCheckIn ? (
+                  <p className="attendance__hint">
+                    Check-in денес: {dashboard.todayCheckIn}
+                  </p>
+              ) : (
+                  <p className="attendance__hint">Нема check-in за денес.</p>
+              )}
+
+              {dashboard?.todayCheckOut ? (
+                  <p className="attendance__hint">
+                    Check-out денес: {dashboard.todayCheckOut}
+                  </p>
+              ) : null}
+
+              {dashboard?.todayWorkedHours ? (
+                  <p className="attendance__hint">
+                    Работени часови денес: {dashboard.todayWorkedHours}
+                  </p>
+              ) : null}
 
               {scanResult === null && (
                   <div className="attendance__pill-hint">
-                    Скенирај лице и дозволи локација за статус.
+                    {getActionMessage(nextAction)}
                   </div>
               )}
 
@@ -590,14 +728,46 @@ export default function Attendance() {
                   </div>
               )}
 
-              <button
-                  type="button"
-                  className="attendance__btn-checkout"
-                  onClick={handleCheckout}
-              >
-                <IconLogout size={20} />
-                CHECK OUT
-              </button>
+              <div style={{ display: "grid", gap: "10px", width: "100%" }}>
+                <button
+                    type="button"
+                    className="attendance__btn-scan"
+                    onClick={startScan}
+                    disabled={
+                        dashboardLoading ||
+                        loadingModel ||
+                        scanning ||
+                        nextAction !== "CHECK_IN"
+                    }
+                >
+                  <IconCamera size={20} />
+                  CHECK IN
+                </button>
+
+                <button
+                    type="button"
+                    className="attendance__btn-checkout"
+                    onClick={startScan}
+                    disabled={
+                        dashboardLoading ||
+                        loadingModel ||
+                        scanning ||
+                        nextAction !== "CHECK_OUT"
+                    }
+                >
+                  <IconLogout size={20} />
+                  CHECK OUT
+                </button>
+
+                <button
+                    type="button"
+                    className="employees__btn employees__btn--outline"
+                    onClick={resetScanState}
+                    disabled={loadingModel || scanning}
+                >
+                  Ресетирај скенирање
+                </button>
+              </div>
             </section>
           </div>
         </div>
