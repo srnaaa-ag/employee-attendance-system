@@ -7,17 +7,21 @@ import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
-public class EmployeeDTO {
+public class ProfileDTO {
 
     private Long id;
 
-    private String firstName;
-    private String lastName;
+    private String first_name;
+    private String last_name;
 
     private String department;
     private String position;
 
-    private LocalDate employmentDate;
+    private LocalDate employment_date;
+
+    private Double allowed_latitude;
+    private Double allowed_longitude;
+    private Double allowed_radius_meters;
 
     private String email;
     private String phone;

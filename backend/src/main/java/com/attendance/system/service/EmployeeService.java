@@ -13,6 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
+
     private final EmployeeRepository employeeRepository;
     private final UserService userService;
 
@@ -25,7 +26,7 @@ public class EmployeeService {
 
     public Employee getEmployeeById(Long id) {
         return employeeRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("Employee not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
     }
 
     public Employee findByUser(User user) {
@@ -37,49 +38,92 @@ public class EmployeeService {
     }
 
     public Employee updateEmployee(Long id, Employee employee) {
-        Employee emp = getEmployeeById(id);
-        emp.setFirst_name(employee.getFirst_name());
-        emp.setLast_name(employee.getLast_name());
-        emp.setAllowed_latitude(employee.getAllowed_latitude());
-        emp.setAllowed_longitude(employee.getAllowed_longitude());
-        emp.setDepartment(employee.getDepartment());
-        emp.setAllowed_radius_meters(employee.getAllowed_radius_meters());
-        emp.setEmployment_date(employee.getEmployment_date());
-        emp.setPosition(employee.getPosition());
+        Employee existingEmployee = getEmployeeById(id);
 
-        return employeeRepository.save(emp);
+        existingEmployee.setFirst_name(employee.getFirst_name());
+        existingEmployee.setLast_name(employee.getLast_name());
+        existingEmployee.setDepartment(employee.getDepartment());
+        existingEmployee.setPosition(employee.getPosition());
+        existingEmployee.setEmployment_date(employee.getEmployment_date());
+        existingEmployee.setAllowed_latitude(employee.getAllowed_latitude());
+        existingEmployee.setAllowed_longitude(employee.getAllowed_longitude());
+        existingEmployee.setAllowed_radius_meters(employee.getAllowed_radius_meters());
+
+        /*
+         * The frontend stores the employee face-reference image in user.profilePicture.
+         * Attendance.jsx later reads this field and uses it as the reference image
+         * for face-api.js face recognition.
+         */
+        if (employee.getUser() != null && existingEmployee.getUser() != null) {
+            User incomingUser = employee.getUser();
+            User existingUser = existingEmployee.getUser();
+
+            if (incomingUser.getEmail() != null && !incomingUser.getEmail().isBlank()) {
+                existingUser.setEmail(incomingUser.getEmail());
+            }
+
+            if (incomingUser.getPhone() != null) {
+                existingUser.setPhone(incomingUser.getPhone());
+            }
+
+            if (incomingUser.getProfilePicture() != null) {
+                existingUser.setProfilePicture(incomingUser.getProfilePicture());
+            }
+
+            userService.save(existingUser);
+        }
+
+        return employeeRepository.save(existingEmployee);
     }
 
     public void deleteEmployee(Long id) {
-        Employee emp = getEmployeeById(id);
-        employeeRepository.delete(emp);
+        Employee employee = getEmployeeById(id);
+        employeeRepository.delete(employee);
     }
-
 
     public Employee updateProfile(Long id, UpdateProfileRequestDTO request) {
-        Employee emp = getEmployeeById(id);
-        emp.setFirst_name(request.getFirst_name());
-        emp.setLast_name(request.getLast_name());
+        Employee employee = getEmployeeById(id);
 
-        User user = emp.getUser();
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setProfilePicture(request.getProfilePicture());
+        employee.setFirst_name(request.getFirst_name());
+        employee.setLast_name(request.getLast_name());
+
+        User user = employee.getUser();
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            user.setEmail(request.getEmail());
+        }
+
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+
+        if (request.getProfilePicture() != null) {
+            user.setProfilePicture(request.getProfilePicture());
+        }
+
         userService.save(user);
 
-        return employeeRepository.save(emp);
+        return employeeRepository.save(employee);
     }
 
-    public EmployeeDTO mapToDTO(Employee e) {
+    public EmployeeDTO mapToDTO(Employee employee) {
+        User user = employee.getUser();
+
+        String profilePicture = user != null ? user.getProfilePicture() : null;
+        boolean hasFacePhoto = profilePicture != null && !profilePicture.isBlank();
+
         return new EmployeeDTO(
-                e.getId(),
-                e.getFirst_name(),
-                e.getLast_name(),
-                e.getDepartment(),
-                e.getPosition(),
-                e.getEmployment_date(),
-                e.getUser().getEmail(),
-                e.getUser().getRole().name()
+                employee.getId(),
+                employee.getFirst_name(),
+                employee.getLast_name(),
+                employee.getDepartment(),
+                employee.getPosition(),
+                employee.getEmployment_date(),
+                user != null ? user.getEmail() : null,
+                user != null ? user.getPhone() : null,
+                user != null && user.getRole() != null ? user.getRole().name() : null,
+                profilePicture,
+                hasFacePhoto
         );
     }
 }

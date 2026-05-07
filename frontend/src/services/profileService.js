@@ -1,10 +1,18 @@
 import { fetchWithAuth } from "./api";
 
+let cachedProfile = null;
+let cachedProfilePromise = null;
+
 async function parseErrorMessage(response) {
     const text = await response.text();
-    if (!text) return `HTTP ${response.status}`;
+
+    if (!text) {
+        return `HTTP ${response.status}`;
+    }
+
     try {
         const body = JSON.parse(text);
+
         return (
             body.message ||
             body.error ||
@@ -16,16 +24,37 @@ async function parseErrorMessage(response) {
     }
 }
 
-export const getMyProfile = async () => {
-    const response = await fetchWithAuth("/profile");
-    if (!response.ok) {
-        throw new Error(await parseErrorMessage(response));
+export const getMyProfile = async (forceRefresh = false) => {
+    if (!forceRefresh && cachedProfile) {
+        return cachedProfile;
     }
-    const data = await response.json();
-    if (data == null) {
-        throw new Error("Нема запис за вработен за овој корисник.");
+
+    if (!forceRefresh && cachedProfilePromise) {
+        return cachedProfilePromise;
     }
-    return data;
+
+    cachedProfilePromise = (async () => {
+        const response = await fetchWithAuth("/profile");
+
+        if (!response.ok) {
+            throw new Error(await parseErrorMessage(response));
+        }
+
+        const data = await response.json();
+
+        if (data == null) {
+            throw new Error("Нема запис за вработен за овој корисник.");
+        }
+
+        cachedProfile = data;
+        return data;
+    })();
+
+    try {
+        return await cachedProfilePromise;
+    } finally {
+        cachedProfilePromise = null;
+    }
 };
 
 export const updateMyProfile = async (data) => {
@@ -33,8 +62,19 @@ export const updateMyProfile = async (data) => {
         method: "PUT",
         body: JSON.stringify(data),
     });
+
     if (!response.ok) {
         throw new Error(await parseErrorMessage(response));
     }
-    return response.json();
+
+    const updated = await response.json();
+
+    cachedProfile = updated;
+
+    return updated;
+};
+
+export const clearProfileCache = () => {
+    cachedProfile = null;
+    cachedProfilePromise = null;
 };

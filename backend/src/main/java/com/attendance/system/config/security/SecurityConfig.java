@@ -1,7 +1,9 @@
 package com.attendance.system.config.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -19,10 +21,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.core.env.Environment;
-import lombok.RequiredArgsConstructor;
-
-
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,56 +44,88 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public
+                        // Public auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // EMPLOYEE
-                        .requestMatchers(HttpMethod.POST, "/api/leave-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/profile/**").hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        // Employee management - ADMIN / SUPER_ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/employees/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/employees/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/employees/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/employees/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/attendance/**")
+                        // Profile
+                        .requestMatchers("/api/profile/**")
                         .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
 
-                        // ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/{id}").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Attendance
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/attendance/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/attendance/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/attendance/**")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+
+                        // Leave requests - employee actions
+                        .requestMatchers(HttpMethod.POST, "/api/leave-requests")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+
+                        // Leave requests - admin actions
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/{id}")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/status/**")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/date-range")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/leave-requests/pending")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/api/reports/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-
                         .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/approve")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/reject")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/leave-requests/**")
+                        .hasRole("SUPER_ADMIN")
 
-                        // SUPER_ADMIN
-                        .requestMatchers(HttpMethod.DELETE, "/api/leave-requests/**").hasRole("SUPER_ADMIN")
+                        // Correction requests - employee actions
+                        .requestMatchers(HttpMethod.POST, "/api/correction-requests")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/employee/me")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/cancel")
+                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
 
+                        // Correction requests - admin actions
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/approve")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/reject")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**")
+                        .hasRole("SUPER_ADMIN")
 
-                        // EMPLOYEE - correction requests
-                        .requestMatchers(HttpMethod.POST, "/api/correction-requests").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/employee/me").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/cancel").hasAnyRole("EMPLOYEE","ADMIN", "SUPER_ADMIN")
+                        // Reports
+                        .requestMatchers(HttpMethod.GET, "/api/reports/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                        // ADMIN - correction requests
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/approve").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                        // SUPER_ADMIN - correction requests
-                        .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**").hasRole("SUPER_ADMIN")
-
-                        // fallback
-                        .anyRequest().authenticated())
+                        // Fallback
+                        .anyRequest().authenticated()
+                )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -106,16 +136,23 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
-        String allowedOrigins = env.getProperty("cors.allowed.origins", "http://localhost:5173");
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        String allowedOrigins = env.getProperty(
+                "cors.allowed.origins",
+                "http://localhost:5173,http://localhost:5174"
+        );
 
-        corsConfiguration.setAllowedOrigins(origins); 
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .toList();
+
+        corsConfiguration.setAllowedOrigins(origins);
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         corsConfiguration.setAllowedHeaders(List.of("*"));
         corsConfiguration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
+
         return source;
     }
 
