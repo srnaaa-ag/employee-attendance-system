@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** WORK | LATE | ABSENT — фронтендот мапира етикети на македонски. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

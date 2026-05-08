@@ -22,15 +22,14 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    /**
-     * Извештај по вработен за период: присуство (евиденција), одобрено отсуство, работни часови, доцнења.
-     */
+
     @GetMapping("/employee-summary")
     public ResponseEntity<List<EmployeeReportRowDTO>> employeeSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(name = "warningFullMonthOfTo", defaultValue = "false") boolean warningFullMonthOfTo) {
         try {
-            return ResponseEntity.ok(reportService.buildEmployeeReport(from, to));
+            return ResponseEntity.ok(reportService.buildEmployeeReport(from, to, warningFullMonthOfTo));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }

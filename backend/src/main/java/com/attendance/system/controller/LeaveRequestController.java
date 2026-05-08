@@ -8,6 +8,7 @@ import com.attendance.system.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -102,8 +103,8 @@ public class LeaveRequestController {
 
     @GetMapping("/date-range")
     public ResponseEntity<List<LeaveRequestResponseDTO>> getLeaveRequestsByDateRange(
-            @RequestParam @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate startDate,
-            @RequestParam @DateTimeFormat(pattern = "dd.MM.yyyy") LocalDate endDate) {
+            @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = ISO.DATE) LocalDate endDate) {
         List<LeaveRequestResponseDTO> requests = leaveRequestService
                 .getLeaveRequestsByDateRange(startDate, endDate)
                 .stream()
@@ -166,9 +167,12 @@ public class LeaveRequestController {
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelLeaveRequest(@PathVariable Long id) {
+    public ResponseEntity<?> cancelLeaveRequest(
+            @PathVariable Long id,
+            Authentication authentication) {
         try {
-            LeaveRequest cancelled = leaveRequestService.cancelLeaveRequest(id);
+            User user = (User) authentication.getPrincipal();
+            LeaveRequest cancelled = leaveRequestService.cancelLeaveRequest(id, user);
             return ResponseEntity.ok(toResponseDTO(cancelled));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

@@ -28,6 +28,63 @@
     gap: 1.25rem;
 }
 
+.profile__avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.profile__avatar {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg);
+    box-shadow: 0 1px 4px rgba(36, 60, 124, 0.12);
+}
+
+.profile__avatar-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.profile__avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.profile__upload-btn {
+    display: inline-block;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: var(--color-surface);
+    transition: background var(--transition), color var(--transition);
+}
+
+.profile__upload-btn:hover {
+    background: var(--color-bg);
+}
+
 .profile__field {
     display: flex;
     flex-direction: column;

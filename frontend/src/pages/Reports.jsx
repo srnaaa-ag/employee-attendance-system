@@ -1,11 +1,23 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { getEmployeeReportSummary } from "../services/reportService.js";
+import { useMatchMedia } from "../hooks/useMatchMedia";
 import "./Reports.css";
 
-function downloadCsv(filename, rows, fromDate, toDate, deptLabel) {
+function downloadCsv(filename, rows, fromDate, toDate, deptLabel, warningFullMonthOfTo) {
     const header = ["Период", `${fromDate} – ${toDate}`, "Оддел", deptLabel];
     const cols = ["Вработен", "Денови присуство", "Одобрено отсуство (ден.)", "Работни часови", "Доцнења", "Предупредување"];
-    const lines = [header.join(";"), cols.join(";")];
+    const lines = [header.join(";")];
+    if (warningFullMonthOfTo) {
+        lines.push(
+            [
+                "Напомена",
+                `„Предупредување“ според доцнења за целиот месец на „До“ (${toDate}). „Доцнења“ останува за периодот Од–До.`,
+                "",
+                "",
+            ].join(";"),
+        );
+    }
+    lines.push(cols.join(";"));
     for (const r of rows) {
         lines.push(
             [r.fullName, r.presentDays, r.approvedLeaveDays, r.workedHoursFormatted, r.lateCount, r.warning].join(";"),
@@ -35,16 +47,20 @@ export default function Reports() {
     const [fromDate, setFromDate] = useState(toIso(defaultFrom));
     const [toDate, setToDate] = useState(toIso(today));
     const [department, setDepartment] = useState("all");
+    const [employeeQuery, setEmployeeQuery] = useState("");
+    const [warningFullMonthOfTo, setWarningFullMonthOfTo] = useState(false);
 
     const [rows, setRows] = useState([]);
     const [loadError, setLoadError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const mobileReports = useMatchMedia("(max-width: 768px)");
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     const loadReport = useCallback(async () => {
         setLoading(true);
         setLoadError(null);
         try {
-            const data = await getEmployeeReportSummary(fromDate, toDate);
+            const data = await getEmployeeReportSummary(fromDate, toDate, warningFullMonthOfTo);
             setRows(Array.isArray(data) ? data : []);
         } catch (e) {
             setLoadError(e?.message || "Неуспешно вчитување на извештајот.");
@@ -52,7 +68,7 @@ export default function Reports() {
         } finally {
             setLoading(false);
         }
-    }, [fromDate, toDate]);
+    }, [fromDate, toDate, warningFullMonthOfTo]);
 
     useEffect(() => {
         loadReport();
@@ -69,9 +85,13 @@ export default function Reports() {
     }, [rows]);
 
     const filteredRows = useMemo(() => {
-        if (department === "all") return rows;
-        return rows.filter((r) => r.department === department);
-    }, [rows, department]);
+        const q = employeeQuery.trim().toLowerCase();
+        return rows.filter((r) => {
+            const deptOk = department === "all" || r.department === department;
+            const employeeOk = !q || String(r.fullName ?? "").toLowerCase().includes(q);
+            return deptOk && employeeOk;
+        });
+    }, [rows, department, employeeQuery]);
 
     const deptLabel = department === "all" ? "Сите" : department;
 
@@ -82,12 +102,8 @@ export default function Reports() {
             formatDisplayDate(fromDate),
             formatDisplayDate(toDate),
             deptLabel,
+            warningFullMonthOfTo,
         );
-    }
-
-    function formatDaysCell(r) {
-        const leave = r.approvedLeaveDays > 0 ? ` (+${r.approvedLeaveDays} отс.)` : "";
-        return `${r.presentDays}${leave}`;
     }
 
     return (
@@ -100,7 +116,24 @@ export default function Reports() {
                     {loadError ? <p className="reports__error">{loadError}</p> : null}
                     {loading ? <p className="reports__loading">Се вчитуваат податоци…</p> : null}
 
-                    <div className="reports__filters">
+                    {mobileReports ? (
+                        <button
+                            type="button"
+                            className="reports__filters-toggle"
+                            onClick={() => setMobileFiltersOpen((prev) => !prev)}
+                            aria-expanded={mobileFiltersOpen}
+                            aria-controls="reports-mobile-filters"
+                        >
+                            {mobileFiltersOpen ? "Сокриј филтри" : "Прикажи филтри"}
+                        </button>
+                    ) : null}
+
+                    <div
+                        id="reports-mobile-filters"
+                        className={`reports__filters${mobileReports ? " reports__filters--mobile" : ""}${
+                            mobileReports && !mobileFiltersOpen ? " reports__filters--collapsed" : ""
+                        }`}
+                    >
                         <div className="reports__field">
                             <label htmlFor="reports-from">Од датум</label>
                             <input
@@ -125,6 +158,21 @@ export default function Reports() {
                                 ))}
                             </select>
                         </div>
+                        <div className="reports__field reports__field--grow">
+                            <label htmlFor="reports-employee">Вработен</label>
+                            <div className="reports__search-wrap">
+                                <span className="reports__search-icon" aria-hidden>
+                                    🔍
+                                </span>
+                                <input
+                                    id="reports-employee"
+                                    type="search"
+                                    placeholder="Пребарај вработен"
+                                    value={employeeQuery}
+                                    onChange={(e) => setEmployeeQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         <div className="reports__field reports__field--btn">
                             <span className="reports__label-spacer" aria-hidden>
                                 &nbsp;
@@ -133,41 +181,119 @@ export default function Reports() {
                                 Преземи CSV
                             </button>
                         </div>
+                        <div
+                            className="reports__warning-block"
+                            role="group"
+                            aria-labelledby="reports-warning-title"
+                        >
+                            <p id="reports-warning-title" className="reports__warning-title">
+                                НАПОМЕНА за Колона „Предупредување“
+                            </p>
+                            <label className="reports__checkbox-label" htmlFor="reports-warning-full-month">
+                                <input
+                                    id="reports-warning-full-month"
+                                    type="checkbox"
+                                    checked={warningFullMonthOfTo}
+                                    onChange={(e) => setWarningFullMonthOfTo(e.target.checked)}
+                                />
+                                <span>Пресметка на ниво на целиот месец</span>
+                            </label>
+                            <ul className="reports__warning-list">
+                                <li>
+                                    <span className="reports__warning-list-label">Без штик: </span>
+                                    Колоната „Предупредување“ се однесува за избраниот период <strong>Од–До</strong>.
+                                </li>
+                                <li>
+                                    <span className="reports__warning-list-label">Со штик: </span>
+                                    Колоната „Предупредување“ го опфаќа {' '}
+                                    <strong>целиот месец</strong> на датумот „До“ (од првиот до последниот ден
+                                    во тој месец). Останатите колони ги прикажуваат податоците за периодот <strong>Од–До</strong>.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                     <div className="reports__table-card">
                         <h3 className="reports__table-head">Податоци за вработени</h3>
-                        <div className="reports__table-scroll">
-                            <table className="reports__table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Вработен</th>
-                                        <th scope="col">Денови</th>
-                                        <th scope="col">Работни часови</th>
-                                        <th scope="col">Доцнења</th>
-                                        <th scope="col">Предупредување</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredRows.length === 0 ? (
+                        {mobileReports ? (
+                            <div className="reports__cards">
+                                {filteredRows.length === 0 ? (
+                                    <p className="reports__empty reports__empty--card">
+                                        Нема податоци за избраните филтри.
+                                    </p>
+                                ) : (
+                                    filteredRows.map((r) => (
+                                        <article key={r.employeeId} className="reports__card">
+                                            <h4 className="reports__card-name">{r.fullName}</h4>
+                                            <div className="reports__card-grid">
+                                                <div className="reports__card-row">
+                                                    <span className="reports__card-k">Денови присуство</span>
+                                                    <span className="reports__card-v reports__cell-mono">
+                                                        {r.presentDays}
+                                                    </span>
+                                                </div>
+                                                <div className="reports__card-row">
+                                                    <span className="reports__card-k">Одобрено отсуство</span>
+                                                    <span className="reports__card-v reports__cell-mono">
+                                                        {r.approvedLeaveDays}
+                                                    </span>
+                                                </div>
+                                                <div className="reports__card-row">
+                                                    <span className="reports__card-k">Работни часови</span>
+                                                    <span className="reports__card-v reports__cell-mono">
+                                                        {r.workedHoursFormatted}
+                                                    </span>
+                                                </div>
+                                                <div className="reports__card-row">
+                                                    <span className="reports__card-k">Доцнења</span>
+                                                    <span className="reports__card-v reports__cell-mono">
+                                                        {r.lateCount}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="reports__card-warning">
+                                                <span className="reports__card-k">Предупредување</span>
+                                                <span className="reports__card-v">{r.warning || "—"}</span>
+                                            </div>
+                                        </article>
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            <div className="reports__table-scroll">
+                                <table className="reports__table">
+                                    <thead>
                                         <tr>
-                                            <td colSpan={5} className="reports__empty">
-                                                Нема податоци за избраните филтри.
-                                            </td>
+                                            <th scope="col">Вработен</th>
+                                            <th scope="col">Денови присуство</th>
+                                            <th scope="col">Одобрено отс. (ден.)</th>
+                                            <th scope="col">Работни часови</th>
+                                            <th scope="col">Доцнења</th>
+                                            <th scope="col">Предупредување</th>
                                         </tr>
-                                    ) : (
-                                        filteredRows.map((r) => (
-                                            <tr key={r.employeeId}>
-                                                <td className="reports__cell-name">{r.fullName}</td>
-                                                <td>{formatDaysCell(r)}</td>
-                                                <td className="reports__cell-mono">{r.workedHoursFormatted}</td>
-                                                <td>{r.lateCount}</td>
-                                                <td>{r.warning}</td>
+                                    </thead>
+                                    <tbody>
+                                        {filteredRows.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="reports__empty">
+                                                    Нема податоци за избраните филтри.
+                                                </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        ) : (
+                                            filteredRows.map((r) => (
+                                                <tr key={r.employeeId}>
+                                                    <td className="reports__cell-name">{r.fullName}</td>
+                                                    <td className="reports__cell-mono">{r.presentDays}</td>
+                                                    <td className="reports__cell-mono">{r.approvedLeaveDays}</td>
+                                                    <td className="reports__cell-mono">{r.workedHoursFormatted}</td>
+                                                    <td>{r.lateCount}</td>
+                                                    <td>{r.warning}</td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

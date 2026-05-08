@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IconLock, IconUserCircle } from "../components/icons/NavIcons.jsx";
+import { IconEye, IconEyeOff, IconLock, IconUserCircle } from "../components/icons/NavIcons.jsx";
 import UserAvatar from "../components/icons/UserAvatar.jsx";
 import { setRole, setToken, setName } from "../services/authService.js";
 import { login } from "../services/api.js";
+import { clearProfileCache } from "../services/profileService.js";
 import "./Login.css";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [access, setAccess] = useState("employee");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +22,7 @@ export default function Login() {
 
     try {
       const data = await login(email, password);
+      clearProfileCache();
       setToken(data.token);
       setRole(data.role);
       setName(data.fullName);
@@ -38,27 +40,6 @@ export default function Login() {
       <div className="login__art" aria-hidden="true" />
 
       <div className="login__right">
-        <div className="login__tabs" role="tablist" aria-label="Тип на корисник">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={access === "employee"}
-            className={access === "employee" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"}
-            onClick={() => setAccess("employee")}
-          >
-            Вработен
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={access === "admin"}
-            className={access === "admin" ? "login__tab login__tab--active" : "login__tab login__tab--inactive"}
-            onClick={() => setAccess("admin")}
-          >
-            Администратор
-          </button>
-        </div>
-
         <div className="login__body">
           <UserAvatar size={96} className="login__hero-avatar" />
           <h1 className="login__title">
@@ -83,7 +64,7 @@ export default function Login() {
               <IconLock size={22} className="login__field-icon" aria-hidden />
               <input
                 className="login__input"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
                 autoComplete="current-password"
@@ -91,6 +72,19 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <button
+                type="button"
+                className="login__password-toggle"
+                aria-label={showPassword ? "Сокриј лозинка" : "Прикажи лозинка"}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? (
+                  <IconEyeOff size={20} aria-hidden />
+                ) : (
+                  <IconEye size={20} aria-hidden />
+                )}
+              </button>
             </div>
 
             {error && <p className="login__error">{error}</p>}

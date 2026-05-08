@@ -39,8 +39,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            if (!userDetails.isEnabled()) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account deactivated");
+                return;
+            }
             if (jwtService.isTokenValid(jwt, userDetails)) {
-                // Улоги мора да одговараат на UserDetails (ROLE_*), инаку hasAnyRole дава 403.
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,

@@ -1,7 +1,18 @@
 import { fetchWithAuth } from "./api";
+import { getToken } from "./authService";
 
 let cachedProfile = null;
 let cachedProfilePromise = null;
+let cachedProfileOwnerToken = null;
+
+function invalidateCacheIfSessionChanged() {
+    const token = getToken();
+    if (token !== cachedProfileOwnerToken) {
+        cachedProfile = null;
+        cachedProfilePromise = null;
+        cachedProfileOwnerToken = token;
+    }
+}
 
 async function parseErrorMessage(response) {
     const text = await response.text();
@@ -25,6 +36,8 @@ async function parseErrorMessage(response) {
 }
 
 export const getMyProfile = async (forceRefresh = false) => {
+    invalidateCacheIfSessionChanged();
+
     if (!forceRefresh && cachedProfile) {
         return cachedProfile;
     }
@@ -32,6 +45,8 @@ export const getMyProfile = async (forceRefresh = false) => {
     if (!forceRefresh && cachedProfilePromise) {
         return cachedProfilePromise;
     }
+
+    const requestToken = getToken();
 
     cachedProfilePromise = (async () => {
         const response = await fetchWithAuth("/profile");
@@ -46,7 +61,13 @@ export const getMyProfile = async (forceRefresh = false) => {
             throw new Error("Нема запис за вработен за овој корисник.");
         }
 
+        if (getToken() !== requestToken) {
+            invalidateCacheIfSessionChanged();
+            return getMyProfile(forceRefresh);
+        }
+
         cachedProfile = data;
+        cachedProfileOwnerToken = requestToken;
         return data;
     })();
 
@@ -58,6 +79,8 @@ export const getMyProfile = async (forceRefresh = false) => {
 };
 
 export const updateMyProfile = async (data) => {
+    const requestToken = getToken();
+
     const response = await fetchWithAuth("/profile", {
         method: "PUT",
         body: JSON.stringify(data),
@@ -69,7 +92,10 @@ export const updateMyProfile = async (data) => {
 
     const updated = await response.json();
 
-    cachedProfile = updated;
+    if (getToken() === requestToken) {
+        cachedProfile = updated;
+        cachedProfileOwnerToken = requestToken;
+    }
 
     return updated;
 };
@@ -77,4 +103,5 @@ export const updateMyProfile = async (data) => {
 export const clearProfileCache = () => {
     cachedProfile = null;
     cachedProfilePromise = null;
+    cachedProfileOwnerToken = null;
 };

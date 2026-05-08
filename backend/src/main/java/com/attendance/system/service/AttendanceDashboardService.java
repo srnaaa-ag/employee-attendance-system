@@ -5,10 +5,12 @@ import com.attendance.system.dto.DashboardAttendanceDTO;
 import com.attendance.system.dto.DashboardRecentRowDTO;
 import com.attendance.system.model.domain.AttendanceRecord;
 import com.attendance.system.model.domain.Employee;
+import com.attendance.system.model.domain.LeaveRequest;
 import com.attendance.system.model.domain.User;
+import com.attendance.system.model.enums.LeaveRequestStatus;
 import com.attendance.system.repository.AttendanceRecordRepository;
+import com.attendance.system.repository.LeaveRequestRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +23,17 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AttendanceDashboardService {
+
+    private static final int DASHBOARD_RECENT_DAY_WINDOW = 90;
 
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT);
@@ -37,7 +43,9 @@ public class AttendanceDashboardService {
 
     private final EmployeeService employeeService;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final LeaveRequestRepository leaveRequestRepository;
 
+    @SuppressWarnings("unused")
     public DashboardAttendanceDTO buildDashboard(User user, int recentLimit) {
         Employee employee = getEmployeeForUser(user);
 
@@ -83,18 +91,9 @@ public class AttendanceDashboardService {
             }
         }
 
-        String monthLateTotal = calculateMonthLateTotal(employeeId, today, workStart);
+        String monthLateTotal = calculateMonthLateCount(employeeId, today);
 
-        int limit = Math.min(Math.max(recentLimit, 1), 50);
-
-        List<AttendanceRecord> recent =
-                attendanceRecordRepository.findRecentByEmployeeId(employeeId, PageRequest.of(0, limit));
-
-        List<DashboardRecentRowDTO> rows = new ArrayList<>();
-
-        for (AttendanceRecord record : recent) {
-            rows.add(toRecentRow(record));
-        }
+        List<DashboardRecentRowDTO> rows = buildCalendarRecentRows(employee, today);
 
         return DashboardAttendanceDTO.builder()
                 .todayCheckIn(todayCheckIn)
@@ -107,6 +106,79 @@ public class AttendanceDashboardService {
                 .workEndTime(workEnd.format(TIME_FMT))
                 .workScheduleLabel(EmployeeService.formatWorkSchedule(workStart, workEnd))
                 .recent(rows)
+                .build();
+    }
+
+    private List<DashboardRecentRowDTO> buildCalendarRecentRows(Employee employee, LocalDate today) {
+        LocalDate employment = employee.getEmployment_date();
+        LocalDate windowStart = today.minusDays(DASHBOARD_RECENT_DAY_WINDOW - 1);
+        if (employment.isAfter(windowStart)) {
+            windowStart = employment;
+        }
+        if (windowStart.isAfter(today)) {
+            return List.of();
+        }
+
+        Long employeeId = employee.getId();
+        LocalDateTime rangeStart = windowStart.atStartOfDay();
+        LocalDateTime rangeEndExclusive = today.plusDays(1).atStartOfDay();
+
+        List<AttendanceRecord> records =
+                attendanceRecordRepository.findByEmployeeAndCheckInRange(
+                        employeeId,
+                        rangeStart,
+                        rangeEndExclusive);
+
+        Map<LocalDate, AttendanceRecord> byDay = new HashMap<>();
+        for (AttendanceRecord r : records) {
+            if (r.getCheck_in_time() == null) {
+                continue;
+            }
+            LocalDate d = r.getCheck_in_time().toLocalDate();
+            byDay.merge(
+                    d,
+                    r,
+                    (a, b) -> a.getCheck_in_time().isAfter(b.getCheck_in_time()) ? a : b
+            );
+        }
+
+        List<LeaveRequest> approvedLeaves = leaveRequestRepository.findByEmployeeIdAndStatus(
+                employeeId,
+                LeaveRequestStatus.APPROVED
+        );
+
+        List<DashboardRecentRowDTO> rows = new ArrayList<>();
+        for (LocalDate d = today; !d.isBefore(windowStart); d = d.minusDays(1)) {
+            AttendanceRecord rec = byDay.get(d);
+            if (rec != null) {
+                rows.add(toRecentRow(rec));
+            } else if (isDateCoveredByApprovedLeave(d, approvedLeaves)) {
+                rows.add(syntheticDayRow(d, "LEAVE"));
+            } else {
+                rows.add(syntheticDayRow(d, "ABSENT"));
+            }
+        }
+        return rows;
+    }
+
+    private static boolean isDateCoveredByApprovedLeave(LocalDate d, List<LeaveRequest> approvedLeaves) {
+        for (LeaveRequest req : approvedLeaves) {
+            if (req.getStartDate() == null || req.getEndDate() == null) {
+                continue;
+            }
+            if (!d.isBefore(req.getStartDate()) && !d.isAfter(req.getEndDate())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static DashboardRecentRowDTO syntheticDayRow(LocalDate d, String status) {
+        return DashboardRecentRowDTO.builder()
+                .date(d.format(DATE_FMT))
+                .checkIn("—")
+                .checkOut("—")
+                .status(status)
                 .build();
     }
 
@@ -215,7 +287,7 @@ public class AttendanceDashboardService {
         return checkInTime.toLocalTime().isAfter(workStart);
     }
 
-    private String calculateMonthLateTotal(Long employeeId, LocalDate today, LocalTime workStart) {
+    private String calculateMonthLateCount(Long employeeId, LocalDate today) {
         LocalDate monthStart = today.withDayOfMonth(1);
         LocalDateTime monthRangeStart = monthStart.atStartOfDay();
         LocalDateTime monthRangeEnd = monthStart.plusMonths(1).atStartOfDay();
@@ -227,25 +299,19 @@ public class AttendanceDashboardService {
                         monthRangeEnd
                 );
 
-        int lateMinutesSum = 0;
+        int lateCount = 0;
 
         for (AttendanceRecord record : monthRecords) {
             if (record.getCheck_in_time() == null || record.getStatus() == null) {
                 continue;
             }
 
-            if (!record.getStatus().toLowerCase(Locale.ROOT).contains("late")) {
-                continue;
-            }
-
-            LocalTime checkIn = record.getCheck_in_time().toLocalTime();
-
-            if (checkIn.isAfter(workStart)) {
-                lateMinutesSum += (int) Duration.between(workStart, checkIn).toMinutes();
+            if (record.getStatus().toLowerCase(Locale.ROOT).contains("late")) {
+                lateCount++;
             }
         }
 
-        return formatMinutesAsClock(lateMinutesSum);
+        return String.valueOf(lateCount);
     }
 
     private static DashboardRecentRowDTO toRecentRow(AttendanceRecord record) {
@@ -306,16 +372,5 @@ public class AttendanceDashboardService {
         int minutes = totalMinutes % 60;
 
         return String.format("%d:%02d", hours, minutes);
-    }
-
-    private static String formatMinutesAsClock(int totalMinutes) {
-        if (totalMinutes <= 0) {
-            return "00:00";
-        }
-
-        int hours = totalMinutes / 60;
-        int minutes = totalMinutes % 60;
-
-        return String.format("%02d:%02d", hours, minutes);
     }
 }

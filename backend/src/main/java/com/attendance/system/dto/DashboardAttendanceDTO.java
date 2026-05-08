@@ -22,7 +22,6 @@ public class DashboardAttendanceDTO {
     /** H:MM или null ако денот не е завршен */
     private String todayWorkedHours;
 
-    /** Вкупно доцнење во месецот како HH:mm */
     private String monthLateTotal;
 
     /**

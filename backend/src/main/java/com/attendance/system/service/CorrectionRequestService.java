@@ -5,6 +5,7 @@ import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.Notification;
 import com.attendance.system.model.domain.User;
 import com.attendance.system.model.enums.LeaveRequestStatus;
+import com.attendance.system.model.enums.Role;
 import com.attendance.system.repository.CorrectionRequestRepository;
 import com.attendance.system.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class CorrectionRequestService {
     private final NotificationRepository notificationRepository;
 
     public CorrectionRequest createCorrectionRequest(CorrectionRequest request) {
+        validateRequestByType(request);
         request.setStatus(LeaveRequestStatus.PENDING);
         request.setCreated_at(LocalDateTime.now());
         return correctionRequestRepository.save(request);
@@ -86,8 +88,22 @@ public class CorrectionRequestService {
         return saved;
     }
 
-    public CorrectionRequest cancelCorrectionRequest(Long id) {
+    public CorrectionRequest cancelCorrectionRequest(Long id, User requester) {
         CorrectionRequest request = getCorrectionRequestById(id);
+
+        if (requester == null) {
+            throw new IllegalStateException("Unauthorized cancel attempt");
+        }
+
+        if (requester.getRole() == Role.EMPLOYEE) {
+            Long ownerUserId = request.getEmployee() != null && request.getEmployee().getUser() != null
+                    ? request.getEmployee().getUser().getId()
+                    : null;
+
+            if (ownerUserId == null || !ownerUserId.equals(requester.getId())) {
+                throw new IllegalStateException("Cannot cancel another employee's correction request");
+            }
+        }
 
         if (request.getStatus() == LeaveRequestStatus.REJECTED ||
                 request.getStatus() == LeaveRequestStatus.CANCELLED) {
@@ -113,6 +129,31 @@ public class CorrectionRequestService {
         if (adminComment == null) return null;
         String trimmed = adminComment.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static void validateRequestByType(CorrectionRequest request) {
+        if (request.getCorrectionType() == null) {
+            throw new IllegalArgumentException("Correction type is required");
+        }
+
+        switch (request.getCorrectionType()) {
+            case CHECK_IN_TIME -> {
+                if (request.getRequestedCheckIn() == null) {
+                    throw new IllegalArgumentException("Requested check-in time is required");
+                }
+            }
+            case CHECK_OUT_TIME -> {
+                if (request.getRequestedCheckOut() == null) {
+                    throw new IllegalArgumentException("Requested check-out time is required");
+                }
+            }
+            case ABSENCE_TYPE -> {
+                if (request.getRequestedAbsenceType() == null ||
+                        request.getRequestedAbsenceType().isBlank()) {
+                    throw new IllegalArgumentException("Requested absence type is required");
+                }
+            }
+        }
     }
 
     private void notifyEmployee(CorrectionRequest request, LeaveRequestStatus status) {

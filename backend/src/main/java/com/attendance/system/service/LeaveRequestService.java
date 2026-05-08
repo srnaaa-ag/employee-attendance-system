@@ -4,6 +4,7 @@ import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.LeaveRequest;
 import com.attendance.system.model.domain.Notification;
 import com.attendance.system.model.domain.User;
+import com.attendance.system.model.enums.Role;
 import com.attendance.system.model.enums.LeaveRequestStatus;
 import com.attendance.system.repository.LeaveRequestRepository;
 import com.attendance.system.repository.NotificationRepository;
@@ -81,6 +82,15 @@ public class LeaveRequestService {
             throw new IllegalArgumentException("Start date cannot be after end date");
         }
 
+        Long employeeId = existingRequest.getEmployee() != null ? existingRequest.getEmployee().getId() : null;
+        if (employeeId != null && hasOverlappingLeaveRequestsExcept(
+                employeeId,
+                updatedRequest.getStartDate(),
+                updatedRequest.getEndDate(),
+                existingRequest.getId())) {
+            throw new IllegalStateException("Overlapping leave request exists");
+        }
+
         existingRequest.setStartDate(updatedRequest.getStartDate());
         existingRequest.setEndDate(updatedRequest.getEndDate());
         existingRequest.setLeave_type(updatedRequest.getLeave_type());
@@ -155,8 +165,22 @@ public class LeaveRequestService {
         notificationRepository.save(notification);
     }
 
-    public LeaveRequest cancelLeaveRequest(Long id) {
+    public LeaveRequest cancelLeaveRequest(Long id, User requester) {
         LeaveRequest request = getLeaveRequestById(id);
+
+        if (requester == null) {
+            throw new IllegalStateException("Unauthorized cancel attempt");
+        }
+
+        if (requester.getRole() == Role.EMPLOYEE) {
+            Long ownerUserId = request.getEmployee() != null && request.getEmployee().getUser() != null
+                    ? request.getEmployee().getUser().getId()
+                    : null;
+
+            if (ownerUserId == null || !ownerUserId.equals(requester.getId())) {
+                throw new IllegalStateException("Cannot cancel another employee's leave request");
+            }
+        }
 
         if (request.getStatus() == LeaveRequestStatus.REJECTED ||
                 request.getStatus() == LeaveRequestStatus.CANCELLED) {
@@ -183,6 +207,20 @@ public class LeaveRequestService {
     public boolean hasOverlappingLeaveRequests(Long employeeId, LocalDate startDate, LocalDate endDate) {
         List<LeaveRequest> requests = getLeaveRequestsByEmployeeId(employeeId);
         return requests.stream()
+                .filter(r -> r.getStatus() == LeaveRequestStatus.APPROVED ||
+                        r.getStatus() == LeaveRequestStatus.PENDING)
+                .anyMatch(r -> datesOverlap(startDate, endDate, r.getStartDate(), r.getEndDate()));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasOverlappingLeaveRequestsExcept(
+            Long employeeId,
+            LocalDate startDate,
+            LocalDate endDate,
+            Long excludedRequestId) {
+        List<LeaveRequest> requests = getLeaveRequestsByEmployeeId(employeeId);
+        return requests.stream()
+                .filter(r -> !r.getId().equals(excludedRequestId))
                 .filter(r -> r.getStatus() == LeaveRequestStatus.APPROVED ||
                         r.getStatus() == LeaveRequestStatus.PENDING)
                 .anyMatch(r -> datesOverlap(startDate, endDate, r.getStartDate(), r.getEndDate()));

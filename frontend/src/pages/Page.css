@@ -80,6 +80,517 @@
     gap: 20px;
 }
 
+/* Хоризонтален скрол за широки табели */
+.leave-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+}
+
+.leave-table-hint {
+    display: none;
+    margin: 0 0 0.55rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.leave-pending-empty {
+    margin: 0;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.leave-pending-stack {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.leave-pending-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.95rem 0.9rem;
+    background: #fafbfd;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.leave-pending-card__title {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a2235;
+    line-height: 1.25;
+}
+
+.leave-pending-card__period {
+    margin: 0 0 0.65rem;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+    color: #334155;
+}
+
+.leave-pending-card__row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: #475569;
+}
+
+.leave-pending-card__k {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.leave-pending-card__label {
+    display: block;
+    margin: 0.35rem 0 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #243c7c;
+}
+
+.leave-pending-card__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0;
+}
+
+.leave-pending-card__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.leave-pending-card__actions .leave-btn-approve,
+.leave-pending-card__actions .leave-btn-reject {
+    margin-top: 0;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.82rem;
+}
+
+/* ——— Мобилен: минималистички card-based отсуство ——— */
+.leave-mycards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.leave-mycard {
+    margin: 0;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid #eef2f7;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 8px 28px rgba(15, 23, 42, 0.06);
+}
+
+.leave-mycard__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.leave-mycard__period {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.leave-mycard__top .status {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    padding: 0.35rem 0.7rem;
+}
+
+.leave-mycard__type {
+    margin: 0.65rem 0 1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.leave-mycard__block {
+    margin: 0 0 0.95rem;
+}
+
+.leave-mycard__block:last-of-type {
+    margin-bottom: 0;
+}
+
+.leave-mycard__k {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #94a3b8;
+    margin-bottom: 0.35rem;
+}
+
+.leave-mycard__v {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #334155;
+    word-break: break-word;
+}
+
+.leave-mycard__btn-cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 0.85rem 1rem;
+    min-height: 48px;
+    border-radius: 14px;
+    border: 1.5px solid #e2e8f0;
+    background: #fafbfc;
+    color: #c62828;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.leave-mycard__btn-cancel:hover:not(:disabled) {
+    background: #fff5f5;
+    border-color: #f5c6cb;
+}
+
+.leave-mycard__btn-cancel:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.leave-mycards__empty {
+    text-align: center;
+    padding: 2rem 1.25rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fafbfd 0%, #ffffff 100%);
+    border: 1px dashed #e2e8f0;
+}
+
+.leave-mycards__empty-title {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.leave-mycards__empty-text {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+@media (max-width: 768px) {
+    .leave-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .leave-container .row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .leave-container .row > div {
+        width: 100%;
+    }
+
+    .leave-container {
+        padding: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right))
+            max(16px, env(safe-area-inset-bottom));
+    }
+
+    /* Насловот е во app header — без дупликат на страницата */
+    .leave-container > h2 {
+        display: none;
+    }
+
+    .leave-container .card {
+        padding: 14px 12px;
+    }
+
+    .leave-container .card h3 {
+        font-size: 0.92rem;
+        padding: 9px 11px;
+        margin-bottom: 12px;
+    }
+
+    /* Картички-контејнери: повеќе воздух, меки сенки */
+    .leave-container .leave-card {
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .leave-container .leave-card--form,
+    .leave-container .leave-card--list,
+    .leave-container .leave-card--admin {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 1.25rem 1.1rem 1.35rem;
+        border: 1px solid #eef2f7;
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.04),
+            0 12px 32px rgba(15, 23, 42, 0.07);
+    }
+
+    .leave-container .leave-card h3 {
+        background: transparent;
+        color: #64748b;
+        padding: 0 0 0.15rem;
+        margin: 0 0 1.1rem;
+        border-radius: 0;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .leave-container .leave-card--form label {
+        margin-top: 1.1rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.04em;
+    }
+
+    .leave-container .leave-card--form label:first-of-type {
+        margin-top: 0;
+    }
+
+    .leave-container .leave-card--form .row {
+        margin-top: 0.25rem;
+    }
+
+    .leave-container .leave-card--form input,
+    .leave-container .leave-card--form select,
+    .leave-container .leave-card--form textarea {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+
+    .leave-container .leave-card--form .primary-btn {
+        border-radius: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        box-shadow: 0 4px 14px rgba(36, 60, 124, 0.18);
+    }
+
+    .leave-container .leave-table-hint {
+        display: block;
+    }
+
+    .leave-container input,
+    .leave-container select,
+    .leave-container textarea {
+        font-size: 16px;
+        min-height: 44px;
+        padding: 10px 12px;
+        border-radius: 8px;
+    }
+
+    .leave-container textarea:not(.leave-pending-card__textarea) {
+        min-height: 96px;
+    }
+
+    .leave-container .leave-pending-card__textarea {
+        min-height: 88px;
+    }
+
+    .leave-container .primary-btn {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 16px;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
+
+    .leave-table-scroll {
+        margin: 0 -4px;
+        padding: 0 4px 4px;
+        box-shadow: inset -12px 0 10px -10px rgba(15, 23, 42, 0.07);
+    }
+
+    /* Покомпактни табели на мобилен — помалку хоризонтален скрол */
+    .leave-table--employee {
+        min-width: 23.5rem;
+        font-size: 0.74rem;
+    }
+
+    .leave-table--employee thead th,
+    .leave-table--employee tbody td {
+        padding: 0.32rem 0.4rem;
+    }
+
+    .leave-table--employee thead th {
+        font-size: 0.58rem;
+        letter-spacing: 0.04em;
+        padding-top: 0.4rem;
+        padding-bottom: 0.4rem;
+    }
+
+    .leave-container .leave-table--employee th:nth-child(1),
+    .leave-container .leave-table--employee td:nth-child(1) {
+        min-width: 6.25rem;
+        max-width: 8.5rem;
+    }
+
+    .leave-container .leave-table--employee th:nth-child(2),
+    .leave-container .leave-table--employee td:nth-child(2) {
+        min-width: 5.25rem;
+    }
+
+    .leave-container .leave-table--employee th:nth-child(3),
+    .leave-container .leave-table--employee td:nth-child(3) {
+        min-width: 4.25rem;
+    }
+
+    .leave-container .leave-table--employee th:nth-child(4),
+    .leave-container .leave-table--employee td:nth-child(4) {
+        min-width: 3.75rem;
+    }
+
+    .leave-container .leave-table--employee th:nth-child(5),
+    .leave-container .leave-table--employee td:nth-child(5) {
+        min-width: 3.75rem;
+    }
+
+    .leave-container .leave-table__comment {
+        font-size: 0.72rem;
+        line-height: 1.32;
+    }
+
+    .leave-btn-cancel {
+        min-height: 34px;
+        padding: 0.28rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .leave-admin-card {
+        margin-top: 1.25rem;
+    }
+
+    .leave-container .status {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .leave-pending-stack {
+        gap: 1.05rem;
+    }
+
+    .leave-pending-card {
+        padding: 1.15rem 1.05rem 1.05rem;
+        border-radius: 18px;
+        border: 1px solid #eef2f7;
+        background: #ffffff;
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.04),
+            0 8px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .leave-pending-card__title {
+        font-size: 1.02rem;
+        letter-spacing: -0.02em;
+    }
+
+    .leave-pending-card__period {
+        font-size: 0.88rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .leave-pending-card__row {
+        font-size: 0.86rem;
+        margin-bottom: 0.65rem;
+        line-height: 1.45;
+    }
+
+    .leave-pending-card__label {
+        margin-top: 0.65rem;
+        color: #475569;
+    }
+
+    .leave-pending-card__actions {
+        gap: 0.65rem;
+        margin-top: 1.05rem;
+    }
+
+    .leave-pending-card__actions .leave-btn-approve,
+    .leave-pending-card__actions .leave-btn-reject {
+        min-height: 48px;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        border-radius: 14px;
+    }
+
+    .leave-pending-empty {
+        padding: 2rem 1rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fafbfd 0%, #ffffff 100%);
+        border: 1px dashed #e2e8f0;
+    }
+}
+
+@media (max-width: 380px) {
+    .leave-pending-card__actions {
+        grid-template-columns: 1fr;
+    }
+
+    .leave-table--employee {
+        min-width: 20rem;
+        font-size: 0.68rem;
+    }
+
+    .leave-table--employee thead th,
+    .leave-table--employee tbody td {
+        padding: 0.28rem 0.34rem;
+    }
+
+    .leave-table--employee thead th {
+        font-size: 0.54rem;
+    }
+}
+
 .card {
     background: #fff;
     border-radius: 12px;
@@ -123,6 +634,21 @@ textarea {
     border: none;
     border-radius: 6px;
     cursor: pointer;
+}
+
+.primary-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.leave-form-hint {
+    margin: 8px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+.leave-form-hint--warn {
+    color: #b85c00;
 }
 
 table {
@@ -265,8 +791,34 @@ td {
     line-height: 1.45;
 }
 
+.leave-table__action-cell {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.leave-btn-cancel {
+    border: 1px solid #c62828;
+    background: #fff;
+    color: #c62828;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.leave-btn-cancel:hover {
+    background: #ffebee;
+}
+
+.leave-btn-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .leave-table--wide {
     font-size: 0.9rem;
+    min-width: 48rem;
 }
 
 .leave-table--wide thead th {
@@ -339,6 +891,7 @@ td {
 
 .leave-admin-actions {
     white-space: nowrap;
+    min-width: 8.25rem;
 }
 
 .leave-btn-approve,
@@ -346,10 +899,41 @@ td {
     display: block;
     width: 100%;
     margin-top: 6px;
+    border-radius: 8px;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .leave-btn-reject {
     margin-top: 8px;
+}
+
+.leave-admin-actions button:first-child {
+    margin-top: 0;
+}
+
+.leave-admin-actions button:nth-child(1) {
+    background: #e8f5e9;
+    border-color: #a5d6a7;
+    color: #1b5e20;
+}
+
+.leave-admin-actions button:nth-child(1):hover {
+    background: #dff0e1;
+}
+
+.leave-admin-actions button:nth-child(2) {
+    background: #fff3e0;
+    border-color: #ffcc80;
+    color: #e65100;
+}
+
+.leave-admin-actions button:nth-child(2):hover {
+    background: #ffe9cc;
 }
 
 .leave-admin-actions button:disabled {

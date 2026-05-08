@@ -23,7 +23,7 @@ async function parseErrorMessage(response) {
  *   todayCheckIn,
  *   todayCheckOut,
  *   todayWorkedHours,
- *   monthLateTotal,
+ *   monthLateTotal, // број на доцнења во месецот (стринг)
  *   attendanceState,
  *   nextAction,
  *   workStartTime,
@@ -48,9 +48,7 @@ export async function getMyDashboard(recentLimit = 10) {
   return response.json();
 }
 
-/**
- * Прави CHECK IN после успешно лице + локација.
- */
+
 export async function checkIn(latitude, longitude) {
   const response = await fetchWithAuth("/attendance/check-in", {
     method: "POST",
@@ -67,9 +65,6 @@ export async function checkIn(latitude, longitude) {
   return response.json();
 }
 
-/**
- * Прави CHECK OUT после успешно лице + локација.
- */
 export async function checkOut(latitude, longitude) {
   const response = await fetchWithAuth("/attendance/check-out", {
     method: "POST",

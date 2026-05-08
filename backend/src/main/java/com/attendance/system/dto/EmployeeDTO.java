@@ -34,4 +34,6 @@ public class EmployeeDTO {
 
     private String profilePicture;
     private Boolean hasFacePhoto;
+
+    private String todayCheckIn;
 }

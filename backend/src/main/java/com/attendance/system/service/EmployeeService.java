@@ -2,16 +2,22 @@ package com.attendance.system.service;
 
 import com.attendance.system.dto.EmployeeDTO;
 import com.attendance.system.dto.UpdateProfileRequestDTO;
+import com.attendance.system.model.domain.AttendanceRecord;
 import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.User;
+import com.attendance.system.repository.AttendanceRecordRepository;
 import com.attendance.system.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,11 +30,38 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final UserService userService;
+    private final AttendanceRecordRepository attendanceRecordRepository;
 
     public List<EmployeeDTO> getAllEmployees() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime dayStart = today.atStartOfDay();
+        LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
+
+        List<AttendanceRecord> todayRecords =
+                attendanceRecordRepository.findByCheckInTimeRange(dayStart, dayEnd);
+
+        Map<Long, LocalDateTime> latestCheckInByEmployee = new HashMap<>();
+        for (AttendanceRecord r : todayRecords) {
+            if (r.getCheck_in_time() == null || r.getEmployee() == null) {
+                continue;
+            }
+            Long eid = r.getEmployee().getId();
+            latestCheckInByEmployee.merge(
+                    eid,
+                    r.getCheck_in_time(),
+                    (a, b) -> a.isAfter(b) ? a : b
+            );
+        }
+
         return employeeRepository.findAll()
                 .stream()
-                .map(this::mapToDTO)
+                .filter(this::isActiveForStaffListing)
+                .map(emp -> {
+                    LocalDateTime ci = latestCheckInByEmployee.get(emp.getId());
+                    String todayCheckIn =
+                            ci != null ? ci.toLocalTime().format(TIME_FMT) : null;
+                    return mapToDTO(emp, todayCheckIn);
+                })
                 .toList();
     }
 
@@ -92,7 +125,20 @@ public class EmployeeService {
 
     public void deleteEmployee(Long id) {
         Employee employee = getEmployeeById(id);
-        employeeRepository.delete(employee);
+        User user = employee.getUser();
+        if (user != null) {
+            user.setIs_active(false);
+            userService.save(user);
+        }
+    }
+
+
+    private boolean isActiveForStaffListing(Employee employee) {
+        User u = employee.getUser();
+        if (u == null) {
+            return true;
+        }
+        return u.getIs_active() == null || Boolean.TRUE.equals(u.getIs_active());
     }
 
     public Employee updateProfile(Long id, UpdateProfileRequestDTO request) {
@@ -121,6 +167,10 @@ public class EmployeeService {
     }
 
     public EmployeeDTO mapToDTO(Employee employee) {
+        return mapToDTO(employee, resolveTodayCheckIn(employee.getId()));
+    }
+
+    public EmployeeDTO mapToDTO(Employee employee, String todayCheckIn) {
         User user = employee.getUser();
 
         String profilePicture = user != null ? user.getProfilePicture() : null;
@@ -146,7 +196,8 @@ public class EmployeeService {
                 user != null ? user.getPhone() : null,
                 user != null && user.getRole() != null ? user.getRole().name() : null,
                 profilePicture,
-                hasFacePhoto
+                hasFacePhoto,
+                todayCheckIn
         );
     }
 
@@ -174,5 +225,20 @@ public class EmployeeService {
 
     public static String formatWorkSchedule(LocalTime start, LocalTime end) {
         return start.format(TIME_FMT) + " - " + end.format(TIME_FMT);
+    }
+
+    private String resolveTodayCheckIn(Long employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        LocalDate today = LocalDate.now();
+        LocalDateTime dayStart = today.atStartOfDay();
+        LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
+        return attendanceRecordRepository
+                .findLatestTodayRecord(employeeId, dayStart, dayEnd)
+                .map(r -> r.getCheck_in_time() != null
+                        ? r.getCheck_in_time().toLocalTime().format(TIME_FMT)
+                        : null)
+                .orElse(null);
     }
 }

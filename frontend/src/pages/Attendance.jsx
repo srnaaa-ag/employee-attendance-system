@@ -110,12 +110,6 @@ async function startCamera(videoRef, streamRef) {
   return stream;
 }
 
-function getActionLabel(nextAction) {
-  if (nextAction === "CHECK_OUT") return "CHECK OUT";
-  if (nextAction === "DONE") return "ЗАВРШЕНО";
-  return "CHECK IN";
-}
-
 function getActionMessage(nextAction) {
   if (nextAction === "CHECK_OUT") {
     return "Скенирањето ќе направи check-out.";
@@ -557,7 +551,7 @@ export default function Attendance() {
           <h1 className="attendance__titlebar">Евиденција</h1>
 
           <div className="attendance__grid">
-            <section className="attendance__col" aria-labelledby="att-scan-title">
+            <section className="attendance__col attendance__col--scan" aria-labelledby="att-scan-title">
               <h2 id="att-scan-title" className="attendance__col-title">
                 Скенирај лице
               </h2>
@@ -593,30 +587,20 @@ export default function Attendance() {
                 {streamActive && <span className="attendance__live">LIVE</span>}
               </div>
 
-              <button
-                  type="button"
-                  className="attendance__btn-scan"
-                  onClick={startScan}
-                  disabled={loadingModel || scanning || dashboardLoading || isDoneToday}
-              >
-                <IconCamera size={20} />
-                {loadingModel
-                    ? "Подготовка…"
-                    : scanning
-                        ? "Скенирање…"
-                        : getActionLabel(nextAction)}
-              </button>
-
-              {liveHint && <p className="attendance__hint-live">{liveHint}</p>}
-
-              {scanError && !scanning && scanResult === "error" && (
-                  <p className="attendance__scan-err" role="alert">
-                    {scanError}
-                  </p>
-              )}
+              <div className="attendance__scan-bottom">
+                {liveHint ? (
+                    <p className="attendance__hint-live">{liveHint}</p>
+                ) : (
+                    <p className="attendance__scan-tip">
+                        Стартувајте го скенирањето со <strong>CHECK IN</strong> или{' '}
+                        <strong>CHECK OUT</strong> во колоната „Статус“{' '}
+                        (дозволи камера и локација во прелистувачот).
+                    </p>
+                )}
+              </div>
             </section>
 
-            <section className="attendance__col" aria-labelledby="att-map-title">
+            <section className="attendance__col attendance__col--map" aria-labelledby="att-map-title">
               <h2 id="att-map-title" className="attendance__col-title">
                 Детекција на локација
               </h2>
@@ -681,34 +665,42 @@ export default function Attendance() {
               )}
             </section>
 
-            <section className="attendance__col" aria-labelledby="att-status-title">
-              <h2 id="att-status-title" className="visually-hidden">
-                Статус и акција
+            <section className="attendance__col attendance__col--status" aria-labelledby="att-status-title">
+              <h2 id="att-status-title" className="attendance__col-title">
+                Статус
               </h2>
 
-              <p className="attendance__shift">
-                Работно време: {workScheduleLabel}
-              </p>
+              <div className="attendance__status-panel">
+                <p className="attendance__shift">
+                  <span className="attendance__shift-label">Работно време</span>
+                  <span className="attendance__shift-value">{workScheduleLabel}</span>
+                </p>
 
-              {dashboard?.todayCheckIn ? (
-                  <p className="attendance__hint">
-                    Check-in денес: {dashboard.todayCheckIn}
-                  </p>
-              ) : (
-                  <p className="attendance__hint">Нема check-in за денес.</p>
-              )}
-
-              {dashboard?.todayCheckOut ? (
-                  <p className="attendance__hint">
-                    Check-out денес: {dashboard.todayCheckOut}
-                  </p>
-              ) : null}
-
-              {dashboard?.todayWorkedHours ? (
-                  <p className="attendance__hint">
-                    Работени часови денес: {dashboard.todayWorkedHours}
-                  </p>
-              ) : null}
+                <ul className="attendance__status-list">
+                  <li>
+                      {dashboard?.todayCheckIn ? (
+                          <>
+                              <span className="attendance__status-k">Check-in денес</span>
+                              <span className="attendance__status-v">{dashboard.todayCheckIn}</span>
+                          </>
+                      ) : (
+                          <span className="attendance__status-muted">Нема check-in за денес.</span>
+                      )}
+                  </li>
+                  {dashboard?.todayCheckOut ? (
+                      <li>
+                          <span className="attendance__status-k">Check-out денес</span>
+                          <span className="attendance__status-v">{dashboard.todayCheckOut}</span>
+                      </li>
+                  ) : null}
+                  {dashboard?.todayWorkedHours ? (
+                      <li>
+                          <span className="attendance__status-k">Работни часови</span>
+                          <span className="attendance__status-v">{dashboard.todayWorkedHours}</span>
+                      </li>
+                  ) : null}
+                </ul>
+              </div>
 
               {scanResult === null && (
                   <div className="attendance__pill-hint">
@@ -717,18 +709,18 @@ export default function Attendance() {
               )}
 
               {scanResult === "success" && (
-                  <div className="attendance__pill attendance__pill--ok">
+                  <div className="attendance__alert attendance__alert--success" role="status">
                     {SUCCESS_MSG}
                   </div>
               )}
 
               {scanResult === "error" && (
-                  <div className="attendance__pill attendance__pill--error">
-                    {FAIL_MSG}
+                  <div className="attendance__alert attendance__alert--error" role="alert">
+                      {scanError?.trim() ? scanError : FAIL_MSG}
                   </div>
               )}
 
-              <div style={{ display: "grid", gap: "10px", width: "100%" }}>
+              <div className="attendance__actions">
                 <button
                     type="button"
                     className="attendance__btn-scan"
@@ -761,7 +753,7 @@ export default function Attendance() {
 
                 <button
                     type="button"
-                    className="employees__btn employees__btn--outline"
+                    className="attendance__btn-reset"
                     onClick={resetScanState}
                     disabled={loadingModel || scanning}
                 >

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import "./Page.css";
+import { useMatchMedia } from "../hooks/useMatchMedia";
 import {
     createCorrectionRequest,
     getMyCorrectionRequests,
     getAllCorrectionRequests,
     approveCorrectionRequest,
     rejectCorrectionRequest,
+    cancelCorrectionRequest,
 } from "../services/correctionRequest";
 import { isAdmin } from "../services/authService";
 
@@ -37,7 +39,9 @@ export default function CorrectionRequests() {
     const [requests, setRequests] = useState([]);
     const [pendingList, setPendingList] = useState([]);
     const [reviewNotes, setReviewNotes] = useState({});
+    const [cancellingId, setCancellingId] = useState(null);
     const admin = isAdmin();
+    const mobileCorrection = useMatchMedia("(max-width: 768px)");
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -138,6 +142,18 @@ export default function CorrectionRequests() {
         }
     };
 
+    const handleCancel = async (id) => {
+        try {
+            setCancellingId(id);
+            await cancelCorrectionRequest(id);
+            await loadRequests();
+        } catch (err) {
+            console.error("Cancel failed:", err);
+        } finally {
+            setCancellingId(null);
+        }
+    };
+
     function statusClass(status) {
         if (status === "APPROVED") return "status approved";
         if (status === "REJECTED") return "status rejected";
@@ -160,7 +176,7 @@ export default function CorrectionRequests() {
 
             <div className="leave-grid">
                 {/* ФОРМА */}
-                <div className="card">
+                <div className={`card${mobileCorrection ? " leave-card leave-card--form" : ""}`}>
                     <h3>Ново барање</h3>
 
                     <label>Тип на корекција</label>
@@ -231,115 +247,243 @@ export default function CorrectionRequests() {
                 </div>
 
                 {/* МОИ БАРАЊА */}
-                <div className="card">
+                <div className={`card${mobileCorrection ? " leave-card leave-card--list" : ""}`}>
                     <h3>Мои барања</h3>
-                    <table className="leave-table leave-table--employee">
-                        <thead>
-                            <tr>
-                                <th>Датум</th>
-                                <th>Тип</th>
-                                <th>Статус</th>
-                                <th>Коментар (од администратор)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    {mobileCorrection ? (
+                        <div className="leave-mycards">
                             {requests.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="leave-table__empty">
-                                        Нема поднесени барања.
-                                    </td>
-                                </tr>
+                                <div className="leave-mycards__empty">
+                                    <p className="leave-mycards__empty-title">Нема барања</p>
+                                    <p className="leave-mycards__empty-text">
+                                        Поднесете барање погоре - секое ќе се појави овде како картичка.
+                                    </p>
+                                </div>
                             ) : (
                                 requests.map((r) => (
-                                    <tr key={r.id}>
-                                        <td>
-                                            <span className="leave-table__period">{formatDate(r.targetDate)}</span>
-                                        </td>
-                                        <td className="leave-table__type-cell">
-                                            {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
-                                        </td>
-                                        <td className="leave-table__status-cell">
+                                    <article key={r.id} className="leave-mycard">
+                                        <div className="leave-mycard__top">
+                                            <p className="leave-mycard__period">{formatDate(r.targetDate)}</p>
                                             <span className={statusClass(r.status)}>
                                                 {STATUS_MK[r.status] ?? r.status}
                                             </span>
-                                        </td>
-                                        <td className="leave-table__comment">
-                                            {r.adminComment?.trim() ? r.adminComment : "—"}
-                                        </td>
-                                    </tr>
+                                        </div>
+                                        <p className="leave-mycard__type">
+                                            {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                        </p>
+                                        <div className="leave-mycard__block">
+                                            <span className="leave-mycard__k">Барање</span>
+                                            <p className="leave-mycard__v">{r.reason?.trim() ? r.reason : "—"}</p>
+                                        </div>
+                                        <div className="leave-mycard__block">
+                                            <span className="leave-mycard__k">Одговор</span>
+                                            <p className="leave-mycard__v">
+                                                {r.adminComment?.trim() ? r.adminComment : "—"}
+                                            </p>
+                                        </div>
+                                        {r.status === "PENDING" ? (
+                                            <button
+                                                type="button"
+                                                className="leave-mycard__btn-cancel"
+                                                onClick={() => handleCancel(r.id)}
+                                                disabled={cancellingId === r.id}
+                                            >
+                                                {cancellingId === r.id ? "Откажување..." : "Откажи барање"}
+                                            </button>
+                                        ) : null}
+                                    </article>
                                 ))
                             )}
-                        </tbody>
-                    </table>
+                        </div>
+                    ) : (
+                        <div className="leave-table-scroll">
+                            <table className="leave-table leave-table--employee">
+                                <thead>
+                                    <tr>
+                                        <th>Датум</th>
+                                        <th>Тип</th>
+                                        <th>Статус</th>
+                                        <th>Коментар</th>
+                                        <th>Акција</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {requests.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="leave-table__empty">
+                                                Нема поднесени барања.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        requests.map((r) => (
+                                            <tr key={r.id}>
+                                                <td>
+                                                    <span className="leave-table__period">
+                                                        {formatDate(r.targetDate)}
+                                                    </span>
+                                                </td>
+                                                <td className="leave-table__type-cell">
+                                                    {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                                </td>
+                                                <td className="leave-table__status-cell">
+                                                    <span className={statusClass(r.status)}>
+                                                        {STATUS_MK[r.status] ?? r.status}
+                                                    </span>
+                                                </td>
+                                                <td className="leave-table__comment">
+                                                    {r.adminComment?.trim() ? r.adminComment : "—"}
+                                                </td>
+                                                <td className="leave-table__action-cell">
+                                                    {r.status === "PENDING" ? (
+                                                        <button
+                                                            type="button"
+                                                            className="leave-btn-cancel"
+                                                            onClick={() => handleCancel(r.id)}
+                                                            disabled={cancellingId === r.id}
+                                                        >
+                                                            {cancellingId === r.id ? "Откажување..." : "Откажи"}
+                                                        </button>
+                                                    ) : (
+                                                        "—"
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* ADMIN ПАНЕЛ */}
             {admin && (
-                <div className="card leave-admin-card">
+                <div
+                    className={`card leave-admin-card${mobileCorrection ? " leave-card leave-card--admin" : ""}`}
+                >
                     <h3>Барања за корекција во исчекување (администратор)</h3>
-                    <table className="leave-table leave-table--wide">
-                        <thead>
-                            <tr>
-                                <th>Вработен</th>
-                                <th>Датум</th>
-                                <th>Тип</th>
-                                <th>Коментар на вработен</th>
-                                <th>Коментар (администратор)</th>
-                                <th>Акции</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pendingList.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="leave-table__empty">
-                                        Нема барања во исчекување.
-                                    </td>
-                                </tr>
-                            ) : (
-                                pendingList.map((r) => (
-                                    <tr key={r.id}>
-                                        <td className="leave-table__type-cell">{r.employeeName}</td>
-                                        <td>
-                                            <span className="leave-table__period">{formatDate(r.targetDate)}</span>
-                                        </td>
-                                        <td className="leave-table__type-cell">
-                                            {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
-                                        </td>
-                                        <td className="leave-table__comment">
-                                            {r.reason?.trim() ? r.reason : "—"}
-                                        </td>
-                                        <td>
-                                            <textarea
-                                                className="leave-admin-comment-input"
-                                                rows={2}
-                                                maxLength={MAX_ADMIN_COMMENT}
-                                                placeholder="Образложение (опционално)"
-                                                value={reviewNotes[String(r.id)] ?? ""}
-                                                onChange={(e) => setReviewNote(r.id, e.target.value)}
-                                            />
-                                        </td>
-                                        <td className="leave-admin-actions">
+                    {mobileCorrection ? (
+                        pendingList.length === 0 ? (
+                            <p className="leave-pending-empty">Нема барања во исчекување.</p>
+                        ) : (
+                            <ul className="leave-pending-stack">
+                                {pendingList.map((r) => (
+                                    <li key={r.id} className="leave-pending-card">
+                                        <p className="leave-pending-card__title">{r.employeeName}</p>
+                                        <p className="leave-pending-card__period">{formatDate(r.targetDate)}</p>
+                                        <div className="leave-pending-card__row">
+                                            <span className="leave-pending-card__k">Тип</span>
+                                            <span>
+                                                {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                            </span>
+                                        </div>
+                                        <div className="leave-pending-card__row">
+                                            <span className="leave-pending-card__k">Коментар на вработен</span>
+                                            <span>{r.reason?.trim() ? r.reason : "—"}</span>
+                                        </div>
+                                        <label
+                                            className="leave-pending-card__label"
+                                            htmlFor={`correction-admin-cmt-${r.id}`}
+                                        >
+                                            Коментар (администратор)
+                                        </label>
+                                        <textarea
+                                            id={`correction-admin-cmt-${r.id}`}
+                                            className="leave-admin-comment-input leave-pending-card__textarea"
+                                            rows={3}
+                                            maxLength={MAX_ADMIN_COMMENT}
+                                            placeholder="Образложение (опционално)"
+                                            value={reviewNotes[String(r.id)] ?? ""}
+                                            onChange={(e) => setReviewNote(r.id, e.target.value)}
+                                        />
+                                        <div className="leave-pending-card__actions">
                                             <button
                                                 type="button"
-                                                className="primary-btn leave-btn-approve"
+                                                className="leave-btn-approve"
                                                 onClick={() => handleApprove(r.id)}
                                             >
                                                 Одобри
                                             </button>
                                             <button
                                                 type="button"
-                                                className="secondary-btn leave-btn-reject"
+                                                className="leave-btn-reject"
                                                 onClick={() => handleReject(r.id)}
                                             >
                                                 Одбиј
                                             </button>
-                                        </td>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )
+                    ) : (
+                        <div className="leave-table-scroll leave-table-scroll--admin">
+                            <table className="leave-table leave-table--wide">
+                                <thead>
+                                    <tr>
+                                        <th>Вработен</th>
+                                        <th>Датум</th>
+                                        <th>Тип</th>
+                                        <th>Коментар на вработен</th>
+                                        <th>Коментар (администратор)</th>
+                                        <th>Акции</th>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    {pendingList.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="leave-table__empty">
+                                                Нема барања во исчекување.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        pendingList.map((r) => (
+                                            <tr key={r.id}>
+                                                <td className="leave-table__type-cell">{r.employeeName}</td>
+                                                <td>
+                                                    <span className="leave-table__period">
+                                                        {formatDate(r.targetDate)}
+                                                    </span>
+                                                </td>
+                                                <td className="leave-table__type-cell">
+                                                    {CORRECTION_TYPE_MK[r.correctionType] ?? r.correctionType}
+                                                </td>
+                                                <td className="leave-table__comment">
+                                                    {r.reason?.trim() ? r.reason : "—"}
+                                                </td>
+                                                <td>
+                                                    <textarea
+                                                        className="leave-admin-comment-input"
+                                                        rows={2}
+                                                        maxLength={MAX_ADMIN_COMMENT}
+                                                        placeholder="Образложение (опционално)"
+                                                        value={reviewNotes[String(r.id)] ?? ""}
+                                                        onChange={(e) => setReviewNote(r.id, e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="leave-admin-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="primary-btn leave-btn-approve"
+                                                        onClick={() => handleApprove(r.id)}
+                                                    >
+                                                        Одобри
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="secondary-btn leave-btn-reject"
+                                                        onClick={() => handleReject(r.id)}
+                                                    >
+                                                        Одбиј
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

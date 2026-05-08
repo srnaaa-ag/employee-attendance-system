@@ -2,6 +2,7 @@
   display: flex;
   min-height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-bg);
   background-image: url("/login-background.png");
   background-repeat: no-repeat;
@@ -30,69 +31,6 @@
   align-items: center;
   justify-content: center;
   padding: 2.5rem 2.5rem 2.5rem 3.5rem;
-}
-
-/*
- * Табови: излегуваат од левата работ на белата картичка во #EBEDF2.
- * Активен = иста бела како картичката, заоблено само лево (пилула кон сивата зона),
- * десно рамно / леко навлегување за без шов со картичката.
- */
-.login__tabs {
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 13.25rem;
-  z-index: 4;
-  gap: 0.4rem;
-  padding-right: 0;
-}
-
-.login__tab {
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.95rem;
-  line-height: 1.25;
-  transition: color var(--transition), box-shadow var(--transition), background var(--transition),
-    border-radius var(--transition);
-}
-
-.login__tab--active {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  color: var(--color-text);
-  font-weight: 600;
-  text-align: center;
-  padding: 0.9rem 0.5rem 0.9rem 1.15rem;
-  border-radius: 18px 0 0 18px;
-  /* без видлив шов со картичката */
-  margin-right: -8px;
-  padding-right: calc(0.65rem + 8px);
-  box-shadow: -8px 8px 24px rgba(26, 54, 127, 0.12);
-  position: relative;
-  z-index: 1;
-}
-
-.login__tab--inactive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: #8b96a8;
-  font-weight: 500;
-  text-align: center;
-  padding: 0.42rem 0.75rem;
-  width: 100%;
-}
-
-.login__tab--inactive:hover {
-  color: #6a7588;
 }
 
 .login__body {
@@ -167,6 +105,21 @@
   outline: none;
 }
 
+.login__password-toggle {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.login__password-toggle:hover {
+  color: var(--color-primary);
+}
+
 .login__row {
   display: flex;
   align-items: center;
@@ -211,47 +164,109 @@
     text-align: center;
 }
 
+/* Планшет и помало: колона, форма како „картица“ */
 @media (max-width: 900px) {
   .login {
     flex-direction: column;
+    background-position: center top;
   }
 
   .login__art {
-    min-height: 200px;
+    min-height: min(32vh, 240px);
     flex: 0 0 auto;
+    /* полесен премин кон белата картица */
+    box-shadow: inset 0 -24px 32px -8px rgba(255, 255, 255, 0.35);
   }
 
   .login__right {
-    flex: 1;
-    min-height: auto;
-    border-radius: 32px 32px 0 0;
-    padding: 2rem 1.5rem 2.5rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 28px 28px 0 0;
+    padding: max(1.25rem, env(safe-area-inset-top))
+        max(1.25rem, env(safe-area-inset-right))
+        max(1.75rem, env(safe-area-inset-bottom))
+        max(1.25rem, env(safe-area-inset-left));
     box-shadow: 0 -12px 40px rgba(26, 54, 127, 0.08);
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
   }
 
-  .login__tabs {
-    position: static;
-    transform: none;
-    flex-direction: column;
-    align-items: center;
+  .login__hero-avatar {
+    margin-bottom: 1rem;
+    transform: scale(0.92);
+    transform-origin: center top;
+  }
+
+  .login__title {
+    /* На тесни екрани претходниот clamp даваше премал текст */
+    font-size: clamp(0.8125rem, 3.1vw, 0.9375rem);
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.035em;
+    line-height: 1.42;
+    padding: 0 0.15rem;
+  }
+
+  .login__form {
+    gap: 1.15rem;
+  }
+}
+
+/* Мали телефони */
+@media (max-width: 480px) {
+  .login__art {
+    min-height: min(26vh, 200px);
+  }
+
+  .login__right {
+    border-radius: 22px 22px 0 0;
+    padding-top: max(1.1rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .login__hero-avatar {
+    transform: scale(0.88);
+  }
+
+  .login__title {
+    font-size: clamp(0.8125rem, 3.4vw, 0.9rem);
+    margin-bottom: 1.35rem;
+  }
+
+  .login__input {
+    /* 16px+ за да не зумира iOS при фокус */
+    font-size: 1rem;
+  }
+
+  .login__password-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    margin: -6px -10px -6px 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+
+  .login__row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 0.85rem;
+    margin-top: 0.5rem;
+  }
+
+  .login__forgot {
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 0.25rem 0;
+  }
+
+  .login__submit {
     width: 100%;
-    max-width: none;
-    margin-bottom: 1.25rem;
-    padding: 0 0.5rem;
-  }
-
-  .login__tab--active {
-    margin-right: 0;
-    padding: 0.8rem 1.35rem;
-    border-radius: 16px;
-    box-shadow: 0 6px 22px rgba(26, 54, 127, 0.12);
-    min-width: min(13.25rem, 100%);
-  }
-
-  .login__tab--inactive {
-    padding: 0.35rem 0.5rem;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
   }
 }

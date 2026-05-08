@@ -9,27 +9,47 @@ function getHeaders() {
     };
 }
 
+async function parseErrorMessage(res) {
+    const text = await res.text();
+
+    if (!text) {
+        return `HTTP ${res.status}`;
+    }
+
+    try {
+        const body = JSON.parse(text);
+        return body.message || body.error || text;
+    } catch {
+        return text;
+    }
+}
+
+async function requestJson(url, options = {}) {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+        throw new Error(await parseErrorMessage(res));
+    }
+    return res.json();
+}
+
 export async function createCorrectionRequest(data) {
-    const res = await fetch(BASE_URL, {
+    return requestJson(BASE_URL, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify(data)
     });
-    return res.json();
 }
 
 export async function getMyCorrectionRequests() {
-    const res = await fetch(`${BASE_URL}/employee/me`, {
+    return requestJson(`${BASE_URL}/employee/me`, {
         headers: getHeaders()
     });
-    return res.json();
 }
 
 export async function getAllCorrectionRequests() {
-    const res = await fetch(BASE_URL, {
+    return requestJson(BASE_URL, {
         headers: getHeaders()
     });
-    return res.json();
 }
 
 export async function approveCorrectionRequest(id, adminComment) {
@@ -37,12 +57,11 @@ export async function approveCorrectionRequest(id, adminComment) {
     if (adminComment != null && String(adminComment).trim() !== "") {
         payload.adminComment = String(adminComment).trim();
     }
-    const res = await fetch(`${BASE_URL}/${id}/approve`, {
+    return requestJson(`${BASE_URL}/${id}/approve`, {
         method: "PATCH",
         headers: getHeaders(),
         body: JSON.stringify(payload)
     });
-    return res.json();
 }
 
 export async function rejectCorrectionRequest(id, adminComment) {
@@ -50,18 +69,16 @@ export async function rejectCorrectionRequest(id, adminComment) {
     if (adminComment != null && String(adminComment).trim() !== "") {
         payload.adminComment = String(adminComment).trim();
     }
-    const res = await fetch(`${BASE_URL}/${id}/reject`, {
+    return requestJson(`${BASE_URL}/${id}/reject`, {
         method: "PATCH",
         headers: getHeaders(),
         body: JSON.stringify(payload)
     });
-    return res.json();
 }
 
 export async function cancelCorrectionRequest(id) {
-    const res = await fetch(`${BASE_URL}/${id}/cancel`, {
+    return requestJson(`${BASE_URL}/${id}/cancel`, {
         method: "PATCH",
         headers: getHeaders()
     });
-    return res.json();
 }

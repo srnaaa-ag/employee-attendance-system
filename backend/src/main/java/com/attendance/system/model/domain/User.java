@@ -44,4 +44,9 @@ public class User implements UserDetails {
     public String getUsername() {
         return email;
     }
+
+    @Override
+    public boolean isEnabled() {
+        return is_active == null || Boolean.TRUE.equals(is_active);
+    }
 }

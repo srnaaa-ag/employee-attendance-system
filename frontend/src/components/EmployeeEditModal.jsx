@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import EmployeeLocationMap from "./EmployeeLocationMap.jsx";
 
 export default function EmployeeEditModal({
                                               open,
@@ -10,6 +11,15 @@ export default function EmployeeEditModal({
     const panelRef = useRef(null);
     const closeBtnRef = useRef(null);
     const fileInputRef = useRef(null);
+    const [mapReady, setMapReady] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setMapReady(true);
+        } else {
+            setMapReady(false);
+        }
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -91,6 +101,19 @@ export default function EmployeeEditModal({
     const hasVisiblePhoto = Boolean(draft.photoPreview);
     const hasOriginalPhoto = Boolean(draft.originalProfilePicture);
 
+    const handleLocationChange = (lat, lng) => {
+        onChange({
+            ...draft,
+            allowedLatitude: lat,
+            allowedLongitude: lng,
+        });
+    };
+
+    const position = [
+        Number(draft.allowedLatitude) || 41.9981,
+        Number(draft.allowedLongitude) || 21.4254,
+    ];
+
     return (
         <div
             className="emp-modal"
@@ -98,7 +121,7 @@ export default function EmployeeEditModal({
             onMouseDown={(e) => e.target === e.currentTarget && onClose()}
         >
             <div
-                className="emp-modal__panel"
+                className="emp-modal__panel emp-modal__panel--wide"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="emp-modal-title"
@@ -224,6 +247,75 @@ export default function EmployeeEditModal({
                                     value={draft.workEndTime || "16:00"}
                                     onChange={(e) =>
                                         onChange({ ...draft, workEndTime: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset className="emp-modal__fieldset">
+                        <legend>Локација за евиденција на присуство</legend>
+
+                        <p className="emp-modal__hint">
+                            Кликни на мапата или влечи го маркерот за да ја одредиш
+                            дозволената локација за овој вработен.
+                        </p>
+
+                        {mapReady ? (
+                            <div style={{ marginBottom: "1rem" }}>
+                                <EmployeeLocationMap
+                                    position={position}
+                                    radius={Number(draft.allowedRadiusMeters) || 100}
+                                    onLocationChange={handleLocationChange}
+                                />
+                            </div>
+                        ) : null}
+
+                        <div className="emp-modal__field">
+                            <label htmlFor="edit-emp-radius">Дозволен радиус (во метри)</label>
+                            <input
+                                id="edit-emp-radius"
+                                type="number"
+                                step="10"
+                                min="10"
+                                value={draft.allowedRadiusMeters}
+                                onChange={(e) =>
+                                    onChange({
+                                        ...draft,
+                                        allowedRadiusMeters:
+                                            parseFloat(e.target.value) || 100,
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="emp-modal__grid2">
+                            <div className="emp-modal__field">
+                                <label htmlFor="edit-emp-lat">Latitude</label>
+                                <input
+                                    id="edit-emp-lat"
+                                    type="text"
+                                    readOnly
+                                    style={{ backgroundColor: "#f5f5f5" }}
+                                    value={
+                                        Number.isFinite(Number(draft.allowedLatitude))
+                                            ? Number(draft.allowedLatitude).toFixed(6)
+                                            : ""
+                                    }
+                                />
+                            </div>
+
+                            <div className="emp-modal__field">
+                                <label htmlFor="edit-emp-lng">Longitude</label>
+                                <input
+                                    id="edit-emp-lng"
+                                    type="text"
+                                    readOnly
+                                    style={{ backgroundColor: "#f5f5f5" }}
+                                    value={
+                                        Number.isFinite(Number(draft.allowedLongitude))
+                                            ? Number(draft.allowedLongitude).toFixed(6)
+                                            : ""
                                     }
                                 />
                             </div>

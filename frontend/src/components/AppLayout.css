@@ -15,10 +15,39 @@
   height: var(--header-height);
   display: flex;
   align-items: center;
+  gap: 0.65rem;
   padding: 0 1.5rem;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+.app-header__menu {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -0.35rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.app-header__menu:hover {
+  background: var(--color-bg);
+}
+
+.app-header--dash .app-header__menu {
+  color: #5b6373;
+}
+
+.app-header--dash .app-header__menu:hover {
+  background: rgb(91, 99, 115);
 }
 
 .app-header__title {
@@ -27,16 +56,21 @@
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header--dash {
-  background: #5c6474;
+  background: #ffffff;
   border-bottom: none;
   box-shadow: none;
 }
 
 .app-header--dash .app-header__title {
-  color: #ffffff;
+  color: #5b6373;
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -44,4 +78,42 @@
 .app-content {
   flex: 1;
   padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .app-header {
+    height: auto;
+    min-height: var(--header-height);
+    padding: 0.35rem max(0.75rem, env(safe-area-inset-right)) 0.35rem
+        max(0.6rem, env(safe-area-inset-left));
+    padding-top: max(0.35rem, env(safe-area-inset-top));
+  }
+
+  .app-header__menu {
+    display: inline-flex;
+  }
+
+  .app-header__title {
+    font-size: 0.88rem;
+    line-height: 1.35;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .app-header--dash .app-header__title {
+    font-size: 0.82rem;
+  }
+
+  .app-content {
+    padding: 1rem max(0.75rem, env(safe-area-inset-right)) 1.25rem
+        max(0.75rem, env(safe-area-inset-left));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
 }

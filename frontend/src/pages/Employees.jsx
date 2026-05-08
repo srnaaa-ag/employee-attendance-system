@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect } from "react";
+import { useMatchMedia } from "../hooks/useMatchMedia";
 import {
   getAllEmployees,
   registerEmployee,
   updateEmployee,
+  deleteEmployee,
 } from "../services/employeeService";
 import EmployeeEditModal from "../components/EmployeeEditModal.jsx";
 import CreateEmployeeModal from "../components/CreateEmployeeModal.jsx";
+import ImportEmployeesCsvModal from "../components/ImportEmployeesCsvModal.jsx";
 import "./Employees.css";
 
 const faceBadgeClass = (kind) =>
@@ -95,8 +98,19 @@ function mapEmployeeFromBackend(e) {
         Boolean(e.hasFacePhoto) ||
         Boolean(profilePicture && String(profilePicture).trim().length > 0),
 
-    checkLabel: "—",
-    checkKind: "ontime",
+    ...(() => {
+      const raw = e.todayCheckIn ?? e.today_check_in;
+      const hasToday =
+          raw != null && String(raw).trim() !== "";
+      const label = hasToday
+          ? normalizeTime(String(raw).trim(), String(raw).trim())
+          : "—";
+      return {
+        checkLabel: label,
+        checkKind: hasToday ? "ontime" : "warn",
+      };
+    })(),
+
     time,
   };
 }
@@ -158,6 +172,8 @@ function emptyCreateDraft() {
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
+  const mobileEmployees = useMatchMedia("(max-width: 768px)");
+  const [employeeQuery, setEmployeeQuery] = useState("");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
@@ -165,6 +181,14 @@ export default function Employees() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState(emptyCreateDraft());
+
+  const [importCsvOpen, setImportCsvOpen] = useState(false);
+
+  const filteredEmployees = employees.filter((e) =>
+      String(e.name ?? "")
+          .toLowerCase()
+          .includes(employeeQuery.trim().toLowerCase())
+  );
 
   const loadEmployees = useCallback(async () => {
     try {
@@ -184,6 +208,30 @@ export default function Employees() {
     setEditDraft(buildDraft(emp));
     setEditModalOpen(true);
   }, []);
+
+  const handleDeactivateEmployee = useCallback(
+      async (emp) => {
+        const message =
+            `Да го отстраниме „${emp.name}“ од активните вработени?\n\n` +
+            "Корисникот нема да може да се најави. Историските податоци " +
+            "(евиденција, извештаи) остануваат во системот.";
+        if (!window.confirm(message)) {
+          return;
+        }
+
+        try {
+          await deleteEmployee(emp.id);
+          await loadEmployees();
+        } catch (err) {
+          console.error("Error deactivating employee:", err);
+          alert(
+              "Грешка при отстранување: " +
+              (err.message || "Unknown error")
+          );
+        }
+      },
+      [loadEmployees]
+  );
 
   const closeEditModal = useCallback(() => {
     if (editSaving) return;
@@ -217,6 +265,34 @@ export default function Employees() {
 
     if (!editDraft.workEndTime) {
       alert("Крајот на работното време е задолжителен.");
+      return;
+    }
+
+    if (
+        editDraft.allowedLatitude === "" ||
+        editDraft.allowedLatitude == null ||
+        Number.isNaN(Number(editDraft.allowedLatitude))
+    ) {
+      alert("Внесете валидна latitude (одбери точка на мапата).");
+      return;
+    }
+
+    if (
+        editDraft.allowedLongitude === "" ||
+        editDraft.allowedLongitude == null ||
+        Number.isNaN(Number(editDraft.allowedLongitude))
+    ) {
+      alert("Внесете валидна longitude (одбери точка на мапата).");
+      return;
+    }
+
+    const radius = Number(editDraft.allowedRadiusMeters);
+    if (
+        editDraft.allowedRadiusMeters === "" ||
+        Number.isNaN(radius) ||
+        radius <= 0
+    ) {
+      alert("Радиусот мора да биде поголем од 0.");
       return;
     }
 
@@ -387,6 +463,18 @@ export default function Employees() {
 
           <div className="employees__body">
             <div className="employees__toolbar">
+              <div className="employees__search-wrap">
+                <span className="employees__search-icon" aria-hidden>
+                  🔍
+                </span>
+                <input
+                    type="search"
+                    className="employees__search-input"
+                    placeholder="Пребарај вработен"
+                    value={employeeQuery}
+                    onChange={(e) => setEmployeeQuery(e.target.value)}
+                />
+              </div>
               <button
                   type="button"
                   className="employees__btn employees__btn--primary"
@@ -398,72 +486,145 @@ export default function Employees() {
               <button
                   type="button"
                   className="employees__btn employees__btn--outline"
+                  onClick={() => setImportCsvOpen(true)}
               >
-                Импорт CSV/Excel
+                Импорт CSV
               </button>
             </div>
 
             <div className="employees__table-card">
               <h3 className="employees__table-head">Податоци за вработени</h3>
 
-              <div className="employees__table-scroll">
-                <table className="employees__table">
-                  <thead>
-                  <tr>
-                    <th scope="col">Име и презиме</th>
-                    <th scope="col">Оддел</th>
-                    <th scope="col">Позиција</th>
-                    <th scope="col">Лице</th>
-                    <th scope="col">Работно време</th>
-                    <th scope="col">Check in денес</th>
-                    <th scope="col" className="employees__th-actions">
-                      Акции
-                    </th>
-                  </tr>
-                  </thead>
+              {mobileEmployees ? (
+                  <div className="employees__cards">
+                    {filteredEmployees.length === 0 ? (
+                        <p className="employees__empty">Нема активни вработени.</p>
+                    ) : (
+                        filteredEmployees.map((e) => {
+                          const faceKind = e.hasFacePhoto ? "registered" : "update";
+                          const faceLabel = e.hasFacePhoto ? "Регистрирано" : "Ажурирај";
 
-                  <tbody>
-                  {employees.map((e) => {
-                    const faceKind = e.hasFacePhoto ? "registered" : "update";
-                    const faceLabel = e.hasFacePhoto
-                        ? "Регистрирано"
-                        : "Ажурирај";
+                          return (
+                              <article key={e.id} className="employees__card">
+                                <div className="employees__card-top">
+                                  <h4 className="employees__card-name">{e.name}</h4>
+                                  <span className={checkBadgeClass(e.checkKind)}>{e.checkLabel}</span>
+                                </div>
 
-                    return (
-                        <tr key={e.id}>
-                          <td className="employees__cell-strong">{e.name}</td>
-                          <td>{e.dept}</td>
-                          <td>{e.position}</td>
+                                <div className="employees__card-row">
+                                  <span className="employees__card-k">Оддел</span>
+                                  <span className="employees__card-v">{e.dept}</span>
+                                </div>
+                                <div className="employees__card-row">
+                                  <span className="employees__card-k">Позиција</span>
+                                  <span className="employees__card-v">{e.position}</span>
+                                </div>
+                                <div className="employees__card-row">
+                                  <span className="employees__card-k">Лице</span>
+                                  <span className={faceBadgeClass(faceKind)}>{faceLabel}</span>
+                                </div>
+                                <div className="employees__card-row">
+                                  <span className="employees__card-k">Работно време</span>
+                                  <span className="employees__card-v employees__cell-mono">{e.time}</span>
+                                </div>
 
-                          <td>
-                          <span className={faceBadgeClass(faceKind)}>
-                            {faceLabel}
-                          </span>
-                          </td>
+                                <div className="employees__card-actions">
+                                  <button
+                                      type="button"
+                                      className="employees__edit"
+                                      onClick={() => openEditModal(e)}
+                                  >
+                                    Уреди
+                                  </button>
+                                  <button
+                                      type="button"
+                                      className="employees__remove"
+                                      onClick={() => handleDeactivateEmployee(e)}
+                                  >
+                                    Отстрани
+                                  </button>
+                                </div>
+                              </article>
+                          );
+                        })
+                    )}
+                  </div>
+              ) : (
+                  <div className="employees__table-scroll">
+                    <table className="employees__table">
+                      <thead>
+                      <tr>
+                        <th scope="col">Име и презиме</th>
+                        <th scope="col">Оддел</th>
+                        <th scope="col">Позиција</th>
+                        <th scope="col">Лице</th>
+                        <th scope="col">Работно време</th>
+                        <th scope="col">Check in денес</th>
+                        <th scope="col" className="employees__th-actions">
+                          Акции
+                        </th>
+                      </tr>
+                      </thead>
 
-                          <td className="employees__cell-mono">{e.time}</td>
+                      <tbody>
+                      {filteredEmployees.map((e) => {
+                        const faceKind = e.hasFacePhoto ? "registered" : "update";
+                        const faceLabel = e.hasFacePhoto
+                            ? "Регистрирано"
+                            : "Ажурирај";
 
-                          <td>
-                          <span className={checkBadgeClass(e.checkKind)}>
-                            {e.checkLabel}
-                          </span>
-                          </td>
+                        return (
+                            <tr key={e.id}>
+                              <td className="employees__cell-strong">{e.name}</td>
+                              <td>{e.dept}</td>
+                              <td>{e.position}</td>
 
-                          <td className="employees__cell-actions">
-                            <button
-                                type="button"
-                                className="employees__edit"
-                                onClick={() => openEditModal(e)}
-                            >
-                              Уреди
-                            </button>
-                          </td>
-                        </tr>
-                    );
-                  })}
-                  </tbody>
-                </table>
-              </div>
+                              <td>
+                              <span className={faceBadgeClass(faceKind)}>
+                                {faceLabel}
+                              </span>
+                              </td>
+
+                              <td className="employees__cell-mono">{e.time}</td>
+
+                              <td>
+                              <span className={checkBadgeClass(e.checkKind)}>
+                                {e.checkLabel}
+                              </span>
+                              </td>
+
+                              <td className="employees__cell-actions">
+                                <div className="employees__action-btns">
+                                  <button
+                                      type="button"
+                                      className="employees__edit"
+                                      onClick={() => openEditModal(e)}
+                                  >
+                                    Уреди
+                                  </button>
+                                  <button
+                                      type="button"
+                                      className="employees__remove"
+                                      onClick={() => handleDeactivateEmployee(e)}
+                                  >
+                                    Отстрани
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                        );
+                      })}
+                      {filteredEmployees.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="employees__empty employees__empty--table">
+                              Нема активни вработени.
+                            </td>
+                          </tr>
+                      ) : null}
+                      </tbody>
+                    </table>
+                  </div>
+              )}
             </div>
           </div>
         </section>
@@ -482,6 +643,12 @@ export default function Employees() {
             onChange={setCreateDraft}
             onClose={closeCreateModal}
             onSave={saveCreateModal}
+        />
+
+        <ImportEmployeesCsvModal
+            open={importCsvOpen}
+            onClose={() => setImportCsvOpen(false)}
+            onImported={loadEmployees}
         />
       </div>
   );

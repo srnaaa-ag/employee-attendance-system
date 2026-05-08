@@ -1,6 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyProfile } from "../services/profileService";
 import "./Profile.css";
+
+function formStateFromProfile(data) {
+    if (!data) return {};
+    return {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email ?? "",
+        phone: data.phone ?? "",
+        profilePicture: data.profilePicture || null,
+    };
+}
 
 export default function Profile() {
     const [profile, setProfile] = useState(null);
@@ -10,6 +21,7 @@ export default function Profile() {
     const [form, setForm] = useState({});
     const [message, setMessage] = useState("");
     const [imagePreview, setImagePreview] = useState(null);
+    const photoInputRef = useRef(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -20,16 +32,8 @@ export default function Profile() {
             .then((data) => {
                 if (cancelled) return;
                 setProfile(data);
-                setForm({
-                    first_name: data.first_name,
-                    last_name: data.last_name,
-                    email: data.user?.email,
-                    phone: data.user?.phone || "",
-                    profilePicture: data.user?.profilePicture || null,
-                });
-                if (data.user?.profilePicture) {
-                    setImagePreview(data.user.profilePicture);
-                }
+                setForm(formStateFromProfile(data));
+                setImagePreview(data.profilePicture || null);
                 setLoadState("ready");
             })
             .catch((err) => {
@@ -62,19 +66,23 @@ export default function Profile() {
         try {
             const updated = await updateMyProfile(form);
             setProfile(updated);
-            setForm({
-                first_name: updated.first_name,
-                last_name: updated.last_name,
-                email: updated.user?.email,
-                phone: updated.user?.phone || "",
-                profilePicture: updated.user?.profilePicture || null,
-            });
+            setForm(formStateFromProfile(updated));
+            setImagePreview(updated.profilePicture || null);
             setEditing(false);
             setMessage("Профилот е успешно ажуриран!");
             setTimeout(() => setMessage(""), 3000);
         } catch (err) {
             setMessage("Грешка при зачувување!");
             setTimeout(() => setMessage(""), 3000);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setForm(formStateFromProfile(profile));
+        setImagePreview(profile.profilePicture || null);
+        setEditing(false);
+        if (photoInputRef.current) {
+            photoInputRef.current.value = "";
         }
     };
 
@@ -120,7 +128,13 @@ export default function Profile() {
                         {editing && (
                             <label className="profile__upload-btn">
                                 Промени слика
-                                <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
+                                <input
+                                    ref={photoInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    style={{ display: "none" }}
+                                />
                             </label>
                         )}
                     </div>
@@ -137,9 +151,11 @@ export default function Profile() {
                                 <input className="profile__input" name={key} value={form[key]} onChange={handleChange} />
                             ) : (
                                 <p className="profile__value">
-                                    {key === "email" ? profile.user?.email :
-                                        key === "phone" ? (profile.user?.phone || "—") :
-                                            profile[key]}
+                                    {key === "email"
+                                        ? (profile.email || "—")
+                                        : key === "phone"
+                                          ? (profile.phone || "—")
+                                          : profile[key]}
                                 </p>
                             )}
                         </div>
@@ -160,7 +176,9 @@ export default function Profile() {
                         {editing ? (
                             <>
                                 <button className="profile__btn profile__btn--primary" onClick={handleSave}>Зачувај</button>
-                                <button className="profile__btn profile__btn--outline" onClick={() => setEditing(false)}>Откажи</button>
+                                <button type="button" className="profile__btn profile__btn--outline" onClick={handleCancelEdit}>
+                                    Откажи
+                                </button>
                             </>
                         ) : (
                             <button className="profile__btn profile__btn--primary" onClick={() => setEditing(true)}>Уреди профил</button>

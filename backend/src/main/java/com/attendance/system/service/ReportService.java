@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,7 +32,8 @@ public class ReportService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final LeaveRequestRepository leaveRequestRepository;
 
-    public List<EmployeeReportRowDTO> buildEmployeeReport(LocalDate from, LocalDate to) {
+    public List<EmployeeReportRowDTO> buildEmployeeReport(
+            LocalDate from, LocalDate to, boolean warningFullMonthOfTo) {
         if (from.isAfter(to)) {
             throw new IllegalArgumentException("from must be before or equal to to");
         }
@@ -46,6 +48,10 @@ public class ReportService {
                 .filter(r -> r.getEmployee() != null && r.getEmployee().getId() != null)
                 .collect(Collectors.groupingBy(r -> r.getEmployee().getId()));
 
+        Map<Long, Integer> lateForWarningByEmployee = warningFullMonthOfTo
+                ? countLateByEmployeeForCalendarMonthOf(to)
+                : null;
+
         Map<Long, Integer> leaveDaysByEmployee = computeApprovedLeaveDaysByEmployee(from, to);
 
         List<Employee> employees = employeeRepository.findAll();
@@ -59,16 +65,18 @@ public class ReportService {
             double workedSum = 0;
             int late = 0;
             for (AttendanceRecord r : empRecords) {
-                if (r.getCheck_in_time() != null) {
+                if (r.getCheck_in_time() != null && r.getCheck_out_time() != null) {
                     distinctDays.add(r.getCheck_in_time().toLocalDate());
                 }
-                if (r.getWorked_hours() != null) {
-                    workedSum += r.getWorked_hours();
-                }
+                workedSum += workedHoursFromRecord(r);
                 if (r.getStatus() != null && r.getStatus().toLowerCase().contains("late")) {
                     late++;
                 }
             }
+
+            int lateForWarning = warningFullMonthOfTo && lateForWarningByEmployee != null
+                    ? lateForWarningByEmployee.getOrDefault(id, 0)
+                    : late;
 
             rows.add(EmployeeReportRowDTO.builder()
                     .employeeId(id)
@@ -78,7 +86,7 @@ public class ReportService {
                     .approvedLeaveDays(leaveDaysByEmployee.getOrDefault(id, 0))
                     .workedHoursFormatted(formatHours(workedSum))
                     .lateCount(late)
-                    .warning("Нема")
+                    .warning(warningForLateCount(lateForWarning))
                     .build());
         }
 
@@ -86,40 +94,80 @@ public class ReportService {
         return rows;
     }
 
-    private Map<Long, Integer> computeApprovedLeaveDaysByEmployee(LocalDate from, LocalDate to) {
-        List<LeaveRequest> approved = leaveRequestRepository.findByStatus(LeaveRequestStatus.APPROVED);
+    private Map<Long, Integer> countLateByEmployeeForCalendarMonthOf(LocalDate toDate) {
+        LocalDate monthStart = toDate.withDayOfMonth(1);
+        LocalDate monthEnd = toDate.withDayOfMonth(toDate.lengthOfMonth());
+        LocalDateTime start = monthStart.atStartOfDay();
+        LocalDateTime endExclusive = monthEnd.plusDays(1).atStartOfDay();
+        List<AttendanceRecord> monthRecords =
+                attendanceRecordRepository.findByCheckInTimeRange(start, endExclusive);
         Map<Long, Integer> map = new HashMap<>();
-        for (LeaveRequest req : approved) {
-            if (req.getEmployee() == null || req.getEmployee().getId() == null) {
+        for (AttendanceRecord r : monthRecords) {
+            if (r.getEmployee() == null || r.getEmployee().getId() == null) {
                 continue;
             }
-            int overlap = overlappingCalendarDays(
-                    req.getStartDate(), req.getEndDate(), from, to);
-            if (overlap <= 0) {
+            if (r.getStatus() == null || !r.getStatus().toLowerCase().contains("late")) {
                 continue;
             }
-            Long eid = req.getEmployee().getId();
-            map.merge(eid, overlap, Integer::sum);
+            Long eid = r.getEmployee().getId();
+            map.merge(eid, 1, Integer::sum);
         }
         return map;
     }
 
-    private static int overlappingCalendarDays(LocalDate leaveStart, LocalDate leaveEnd, LocalDate rangeFrom, LocalDate rangeTo) {
-        if (leaveStart == null || leaveEnd == null) {
-            return 0;
+
+    private Map<Long, Integer> computeApprovedLeaveDaysByEmployee(LocalDate from, LocalDate to) {
+        List<LeaveRequest> approved = leaveRequestRepository.findByStatus(LeaveRequestStatus.APPROVED);
+        Map<Long, Set<LocalDate>> daysByEmployee = new HashMap<>();
+        for (LeaveRequest req : approved) {
+            if (req.getEmployee() == null || req.getEmployee().getId() == null) {
+                continue;
+            }
+            LocalDate leaveStart = req.getStartDate();
+            LocalDate leaveEnd = req.getEndDate();
+            if (leaveStart == null || leaveEnd == null) {
+                continue;
+            }
+            LocalDate start = leaveStart.isAfter(from) ? leaveStart : from;
+            LocalDate end = leaveEnd.isBefore(to) ? leaveEnd : to;
+            if (start.isAfter(end)) {
+                continue;
+            }
+            Long eid = req.getEmployee().getId();
+            Set<LocalDate> days = daysByEmployee.computeIfAbsent(eid, k -> new HashSet<>());
+            LocalDate d = start;
+            while (!d.isAfter(end)) {
+                days.add(d);
+                d = d.plusDays(1);
+            }
         }
-        LocalDate start = leaveStart.isAfter(rangeFrom) ? leaveStart : rangeFrom;
-        LocalDate end = leaveEnd.isBefore(rangeTo) ? leaveEnd : rangeTo;
-        if (start.isAfter(end)) {
-            return 0;
+        Map<Long, Integer> map = new HashMap<>();
+        daysByEmployee.forEach((eid, days) -> map.put(eid, days.size()));
+        return map;
+    }
+
+    private static double workedHoursFromRecord(AttendanceRecord r) {
+        if (r.getCheck_in_time() != null && r.getCheck_out_time() != null) {
+            long minutes = Duration.between(r.getCheck_in_time(), r.getCheck_out_time()).toMinutes();
+            if (minutes < 0) {
+                return 0;
+            }
+            return minutes / 60.0;
         }
-        int n = 0;
-        LocalDate d = start;
-        while (!d.isAfter(end)) {
-            n++;
-            d = d.plusDays(1);
+        if (r.getWorked_hours() != null) {
+            return r.getWorked_hours();
         }
-        return n;
+        return 0;
+    }
+
+    private static String warningForLateCount(int lateCount) {
+        if (lateCount < 3) {
+            return "Нема";
+        }
+        if (lateCount <= 5) {
+            return "Усно предупредување";
+        }
+        return "Писмено предупредување";
     }
 
     private static String formatHours(double totalHours) {

@@ -23,7 +23,36 @@ function wrapSvg(children, { size, className, title, ...rest }) {
   );
 }
 
-/** Куќа — контролна табла */
+export function IconMenu(props) {
+  const p = { ...defaultProps, ...props };
+  return wrapSvg(
+      <>
+        <path
+            d="M4 7h16M4 12h16M4 17h16"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+        />
+      </>,
+      p
+  );
+}
+
+export function IconClose(props) {
+  const p = { ...defaultProps, ...props };
+  return wrapSvg(
+      <>
+        <path
+            d="M6 6l12 12M18 6L6 18"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+        />
+      </>,
+      p
+  );
+}
+
 export function IconHome(props) {
   const p = { ...defaultProps, ...props };
   return wrapSvg(
@@ -47,7 +76,6 @@ export function IconHome(props) {
   );
 }
 
-/** Лична карта / евиденција */
 export function IconIdCard(props) {
   const p = { ...defaultProps, ...props };
   return wrapSvg(
@@ -90,7 +118,58 @@ export function IconLock(props) {
   );
 }
 
-/** Камера — скенирање лице */
+export function IconEye(props) {
+  const p = { ...defaultProps, ...props };
+  return wrapSvg(
+    <>
+      <path
+        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.75" />
+    </>,
+    p
+  );
+}
+
+export function IconEyeOff(props) {
+  const p = { ...defaultProps, ...props };
+  return wrapSvg(
+    <>
+      <path
+        d="M3 3l18 18"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.6 6.3A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a16.8 16.8 0 0 1-3.1 3.8"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.1 8.1A16.4 16.4 0 0 0 2.5 12s3.5 6 9.5 6c1.3 0 2.5-.3 3.6-.8"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10.6 10.6a2 2 0 0 0 2.8 2.8"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </>,
+    p
+  );
+}
+
 export function IconCamera(props) {
   const p = { ...defaultProps, ...props };
   return wrapSvg(
@@ -108,7 +187,6 @@ export function IconCamera(props) {
   );
 }
 
-/** Три вработени во ред */
 export function IconUsers(props) {
   const p = { ...defaultProps, ...props };
   const bust = (x) => (
@@ -220,6 +298,8 @@ const iconMap = {
   idcard: IconIdCard,
   calendar: IconCalendar,
   lock: IconLock,
+  eye: IconEye,
+  eyeoff: IconEyeOff,
   users: IconUsers,
   csv: IconCsv,
   user: IconUserCircle,

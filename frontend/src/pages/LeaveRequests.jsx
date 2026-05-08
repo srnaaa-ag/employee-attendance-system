@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import "./Page.css";
+import { useMatchMedia } from "../hooks/useMatchMedia";
 
 import {
   createLeaveRequest,
@@ -7,6 +8,7 @@ import {
   getRequestsByStatus,
   approveLeaveRequest,
   rejectLeaveRequest,
+  cancelLeaveRequest,
 } from "../services/leaveRequest";
 
 import { isAdmin } from "../services/authService";
@@ -25,8 +27,13 @@ const LEAVE_TYPE_MK = {
 
 const MAX_ADMIN_COMMENT = 500;
 
+function datesOverlap(startA, endA, startB, endB) {
+  return startA <= endB && endA >= startB;
+}
+
 export default function LeaveRequests() {
   const admin = isAdmin();
+  const mobileLeave = useMatchMedia("(max-width: 768px)");
 
   const [form, setForm] = useState({
     leaveType: "ANNUAL",
@@ -39,6 +46,7 @@ export default function LeaveRequests() {
   const [pendingList, setPendingList] = useState([]);
   const [adminComments, setAdminComments] = useState({});
   const [pendingLoadError, setPendingLoadError] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -117,6 +125,18 @@ export default function LeaveRequests() {
     }
   };
 
+  const handleCancel = async (id) => {
+    try {
+      setCancellingId(id);
+      await cancelLeaveRequest(id);
+      await loadRequests();
+    } catch (err) {
+      console.error("Cancel error:", err);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   function formatDate(dateStr) {
     if (!dateStr) return "";
     if (typeof dateStr === "string" && dateStr.includes("-")) {
@@ -133,13 +153,33 @@ export default function LeaveRequests() {
     return "status pending";
   }
 
+  const overlapDetected = useMemo(() => {
+    if (!form.startDate || !form.endDate) return false;
+    if (form.startDate > form.endDate) return false;
+
+    return requests
+      .filter((r) => r.status === "PENDING" || r.status === "APPROVED")
+      .some((r) => {
+        if (!r.startDate || !r.endDate) return false;
+        return datesOverlap(form.startDate, form.endDate, r.startDate, r.endDate);
+      });
+  }, [form.startDate, form.endDate, requests]);
+
+  const invalidRange = Boolean(form.startDate && form.endDate && form.startDate > form.endDate);
+  const disableSubmit = invalidRange || overlapDetected;
+  const submitDisabledTitle = invalidRange
+    ? "Почетниот датум не смее да е после крајниот."
+    : overlapDetected
+      ? "Имате постоечко барање што се преклопува во овој период."
+      : "";
+
   return (
     <div className="leave-container">
       <h2>Барање за отсуство</h2>
 
       <div className="leave-grid">
         {/* CREATE REQUEST */}
-        <div className="card">
+        <div className={`card${mobileLeave ? " leave-card leave-card--form" : ""}`}>
           <h3>Ново барање</h3>
 
           <label>Тип</label>
@@ -167,112 +207,250 @@ export default function LeaveRequests() {
             placeholder="Приложи објаснување"
           />
 
-          <button className="primary-btn" onClick={handleSubmit}>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleSubmit}
+            disabled={disableSubmit}
+            title={submitDisabledTitle}
+          >
             Поднеси барање
           </button>
+          {disableSubmit && (
+            <p className="leave-form-hint leave-form-hint--warn">{submitDisabledTitle}</p>
+          )}
         </div>
 
         {/* EMPLOYEE REQUESTS */}
-        <div className="card">
+        <div className={`card${mobileLeave ? " leave-card leave-card--list" : ""}`}>
           <h3>Мои барања</h3>
 
-          <table className="leave-table leave-table--employee">
-            <thead>
-              <tr>
-                <th>Период</th>
-                <th>Тип</th>
-                <th>Статус</th>
-                <th>Коментар</th>
-              </tr>
-            </thead>
-
-            <tbody>
+          {mobileLeave ? (
+            <div className="leave-mycards">
               {requests.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="leave-table__empty">
-                    Нема поднесени барања.
-                  </td>
-                </tr>
+                <div className="leave-mycards__empty">
+                  <p className="leave-mycards__empty-title">Нема барања</p>
+                  <p className="leave-mycards__empty-text">Поднесете барање погоре — секое ќе се појави овде како картичка.</p>
+                </div>
               ) : (
                 requests.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <span className="leave-table__period">
+                  <article key={r.id} className="leave-mycard">
+                    <div className="leave-mycard__top">
+                      <p className="leave-mycard__period">
                         {formatDate(r.startDate)} – {formatDate(r.endDate)}
-                      </span>
-                    </td>
-                    <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-                    <td className="leave-table__status-cell">
+                      </p>
                       <span className={statusClass(r.status)}>
                         {STATUS_MK[r.status] ?? r.status}
                       </span>
-                    </td>
-                    <td className="leave-table__comment">
-                      {r.adminComment?.trim() ? r.adminComment : "—"}
-                    </td>
-                  </tr>
+                    </div>
+                    <p className="leave-mycard__type">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</p>
+                    <div className="leave-mycard__block">
+                      <span className="leave-mycard__k">Коментар</span>
+                      <p className="leave-mycard__v">{r.reason?.trim() ? r.reason : "—"}</p>
+                    </div>
+                    <div className="leave-mycard__block">
+                      <span className="leave-mycard__k">Одговор</span>
+                      <p className="leave-mycard__v">{r.adminComment?.trim() ? r.adminComment : "—"}</p>
+                    </div>
+                    {r.status === "PENDING" ? (
+                      <button
+                        type="button"
+                        className="leave-mycard__btn-cancel"
+                        onClick={() => handleCancel(r.id)}
+                        disabled={cancellingId === r.id}
+                      >
+                        {cancellingId === r.id ? "Откажување..." : "Откажи барање"}
+                      </button>
+                    ) : null}
+                  </article>
                 ))
               )}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <>
+              <div className="leave-table-scroll">
+                <table className="leave-table leave-table--employee">
+                  <thead>
+                    <tr>
+                      <th>Период</th>
+                      <th>Тип</th>
+                      <th>Статус</th>
+                      <th>Коментар</th>
+                      <th>Акција</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {requests.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="leave-table__empty">
+                          Нема поднесени барања.
+                        </td>
+                      </tr>
+                    ) : (
+                      requests.map((r) => (
+                        <tr key={r.id}>
+                          <td>
+                            <span className="leave-table__period">
+                              {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                            </span>
+                          </td>
+                          <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
+                          <td className="leave-table__status-cell">
+                            <span className={statusClass(r.status)}>
+                              {STATUS_MK[r.status] ?? r.status}
+                            </span>
+                          </td>
+                          <td className="leave-table__comment">
+                            {r.adminComment?.trim() ? r.adminComment : "—"}
+                          </td>
+                          <td className="leave-table__action-cell">
+                            {r.status === "PENDING" ? (
+                              <button
+                                type="button"
+                                className="leave-btn-cancel"
+                                onClick={() => handleCancel(r.id)}
+                                disabled={cancellingId === r.id}
+                              >
+                                {cancellingId === r.id ? "Откажување..." : "Откажи"}
+                              </button>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* ADMIN */}
       {admin && (
-        <div className="card leave-admin-card">
+        <div className={`card leave-admin-card${mobileLeave ? " leave-card leave-card--admin" : ""}`}>
           <h3>Барања во исчекување</h3>
 
           {pendingLoadError && <p className="leave-error">{pendingLoadError}</p>}
 
-          <table className="leave-table leave-table--wide">
-            <thead>
-              <tr>
-                <th>Вработен</th>
-                <th>Период</th>
-                <th>Тип</th>
-                <th>Коментар</th>
-                <th>Админ коментар</th>
-                <th>Акции</th>
-              </tr>
-            </thead>
+          {mobileLeave ? (
+            pendingList.length === 0 ? (
+              <p className="leave-pending-empty">Нема барања во исчекување.</p>
+            ) : (
+              <ul className="leave-pending-stack">
+                {pendingList.map((r) => (
+                  <li key={r.id} className="leave-pending-card">
+                    <p className="leave-pending-card__title">{r.employeeName}</p>
+                    <p className="leave-pending-card__period">
+                      {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                    </p>
+                    <div className="leave-pending-card__row">
+                      <span className="leave-pending-card__k">Тип</span>
+                      <span>{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</span>
+                    </div>
+                    <div className="leave-pending-card__row">
+                      <span className="leave-pending-card__k">Коментар од вработен</span>
+                      <span>{r.reason?.trim() ? r.reason : "—"}</span>
+                    </div>
+                    <label className="leave-pending-card__label" htmlFor={`admin-cmt-${r.id}`}>
+                      Админ коментар
+                    </label>
+                    <textarea
+                      id={`admin-cmt-${r.id}`}
+                      className="leave-admin-comment-input leave-pending-card__textarea"
+                      maxLength={MAX_ADMIN_COMMENT}
+                      value={adminComments[r.id] || ""}
+                      onChange={(e) => handleAdminCommentChange(r.id, e.target.value)}
+                      rows={3}
+                    />
+                    <div className="leave-pending-card__actions">
+                      <button
+                        type="button"
+                        className="leave-btn-approve"
+                        onClick={() => handleApprove(r.id)}
+                      >
+                        Одобри
+                      </button>
+                      <button
+                        type="button"
+                        className="leave-btn-reject"
+                        onClick={() => handleReject(r.id)}
+                      >
+                        Одбиј
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : (
+            <div className="leave-table-scroll leave-table-scroll--admin">
+              <table className="leave-table leave-table--wide">
+                  <thead>
+                    <tr>
+                      <th>Вработен</th>
+                      <th>Период</th>
+                      <th>Тип</th>
+                      <th>Коментар</th>
+                      <th>Админ коментар</th>
+                      <th>Акции</th>
+                    </tr>
+                  </thead>
 
-            <tbody>
-              {pendingList.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="leave-table__empty">
-                    Нема барања во исчекување.
-                  </td>
-                </tr>
-              ) : (
-                pendingList.map((r) => (
-                  <tr key={r.id}>
-                    <td className="leave-table__type-cell">{r.employeeName}</td>
-                    <td>
-                      <span className="leave-table__period">
-                        {formatDate(r.startDate)} – {formatDate(r.endDate)}
-                      </span>
-                    </td>
-                    <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
-                    <td className="leave-table__comment">{r.reason?.trim() ? r.reason : "—"}</td>
-                    <td>
-                      <textarea
-                        maxLength={MAX_ADMIN_COMMENT}
-                        value={adminComments[r.id] || ""}
-                        onChange={(e) =>
-                          handleAdminCommentChange(r.id, e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <button onClick={() => handleApprove(r.id)}>Одобри</button>
-                      <button onClick={() => handleReject(r.id)}>Одбиј</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                  <tbody>
+                    {pendingList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="leave-table__empty">
+                          Нема барања во исчекување.
+                        </td>
+                      </tr>
+                    ) : (
+                      pendingList.map((r) => (
+                        <tr key={r.id}>
+                          <td className="leave-table__type-cell">{r.employeeName}</td>
+                          <td>
+                            <span className="leave-table__period">
+                              {formatDate(r.startDate)} – {formatDate(r.endDate)}
+                            </span>
+                          </td>
+                          <td className="leave-table__type-cell">{LEAVE_TYPE_MK[r.leaveType] ?? r.leaveType}</td>
+                          <td className="leave-table__comment">{r.reason?.trim() ? r.reason : "—"}</td>
+                          <td>
+                            <textarea
+                              className="leave-admin-comment-input"
+                              maxLength={MAX_ADMIN_COMMENT}
+                              value={adminComments[r.id] || ""}
+                              onChange={(e) =>
+                                handleAdminCommentChange(r.id, e.target.value)
+                              }
+                            />
+                          </td>
+                          <td className="leave-admin-actions">
+                            <button
+                              type="button"
+                              className="leave-btn-approve"
+                              onClick={() => handleApprove(r.id)}
+                            >
+                              Одобри
+                            </button>
+                            <button
+                              type="button"
+                              className="leave-btn-reject"
+                              onClick={() => handleReject(r.id)}
+                            >
+                              Одбиј
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+            </div>
+          )}
         </div>
       )}
     </div>

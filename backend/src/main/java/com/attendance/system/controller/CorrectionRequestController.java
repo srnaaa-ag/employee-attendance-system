@@ -140,9 +140,12 @@ public class CorrectionRequestController {
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelCorrectionRequest(@PathVariable Long id) {
+    public ResponseEntity<?> cancelCorrectionRequest(
+            @PathVariable Long id,
+            Authentication authentication) {
         try {
-            CorrectionRequest cancelled = correctionRequestService.cancelCorrectionRequest(id);
+            User user = (User) authentication.getPrincipal();
+            CorrectionRequest cancelled = correctionRequestService.cancelCorrectionRequest(id, user);
             return ResponseEntity.ok(toResponseDTO(cancelled));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
