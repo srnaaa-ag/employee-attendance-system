@@ -18,13 +18,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class DataInitializer {
 
-    private static final String SUPERADMIN_EMAIL = "superadmin@admin.com";
+    private static final String SUPERADMIN_EMAIL = "system.administrator123@gmail.com";
 
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
@@ -84,90 +83,21 @@ public class DataInitializer {
             employeeRepository.save(emp);
         }
 
-        // ===== EMPLOYEE =====
-        String employeeEmail = "employee@company.com";
-
-        User employee = userRepository.findByEmail(employeeEmail).orElseGet(() -> {
-            User u = new User();
-            u.setEmail(employeeEmail);
-            u.setPassword(passwordEncoder.encode("employee123"));
-            u.setRole(Role.EMPLOYEE);
-            u.setIs_active(true);
-            return userRepository.save(u);
-        });
-
-        if (employeeRepository.findByUser(employee) == null) {
-            Employee emp = new Employee();
-            emp.setFirst_name("John");
-            emp.setLast_name("Doe");
-            emp.setDepartment("IT");
-            emp.setPosition("Software Developer");
-            emp.setEmployment_date(LocalDate.now());
-            emp.setAllowed_latitude(41.9973);
-            emp.setAllowed_longitude(21.4280);
-            emp.setAllowed_radius_meters(500.0);
-            emp.setUser(employee);
-            employeeRepository.save(emp);
-        }
-
-
-        // Avoid duplicates (simple check)
         if (leaveRequestRepository.count() == 0) {
-
             Employee adminEmp = employeeRepository.findByUser(admin);
-            Employee employeeEmp = employeeRepository.findByUser(employee);
+            if (adminEmp != null) {
+                LeaveRequest sampleAdminLeave = LeaveRequest.builder()
+                        .startDate(LocalDate.now().plusDays(3))
+                        .endDate(LocalDate.now().plusDays(4))
+                        .leave_type(LeaveType.ANNUAL)
+                        .reason("Краток одмор")
+                        .status(LeaveRequestStatus.PENDING)
+                        .created_at(LocalDateTime.now())
+                        .employee(adminEmp)
+                        .build();
 
-            // ===== PENDING =====
-            LeaveRequest lr1 = LeaveRequest.builder()
-                    .startDate(LocalDate.now().plusDays(1))
-                    .endDate(LocalDate.now().plusDays(5))
-                    .leave_type(LeaveType.ANNUAL)
-                    .reason("Годишен одмор")
-                    .status(LeaveRequestStatus.PENDING)
-                    .created_at(LocalDateTime.now())
-                    .employee(employeeEmp)
-                    .build();
-
-            // ===== APPROVED =====
-            LeaveRequest lr2 = LeaveRequest.builder()
-                    .startDate(LocalDate.now().minusDays(10))
-                    .endDate(LocalDate.now().minusDays(5))
-                    .leave_type(LeaveType.SICK_LEAVE)
-                    .reason("Боледување")
-                    .status(LeaveRequestStatus.APPROVED)
-                    .created_at(LocalDateTime.now().minusDays(15))
-                    .reviewed_at(LocalDateTime.now().minusDays(12))
-                    .employee(employeeEmp)
-                    .reviewedBy(admin)
-                    .adminComment("Одобрено, доставена документација")
-                    .build();
-
-            // ===== REJECTED =====
-            LeaveRequest lr3 = LeaveRequest.builder()
-                    .startDate(LocalDate.now().plusDays(7))
-                    .endDate(LocalDate.now().plusDays(10))
-                    .leave_type(LeaveType.ANNUAL)
-                    .reason("Патување")
-                    .status(LeaveRequestStatus.REJECTED)
-                    .created_at(LocalDateTime.now())
-                    .reviewed_at(LocalDateTime.now())
-                    .employee(employeeEmp)
-                    .reviewedBy(admin)
-                    .adminComment("Премногу барања во овој период")
-                    .build();
-
-            // ===== ADMIN REQUEST =====
-            LeaveRequest lr4 = LeaveRequest.builder()
-                    .startDate(LocalDate.now().plusDays(3))
-                    .endDate(LocalDate.now().plusDays(4))
-                    .leave_type(LeaveType.ANNUAL)
-                    .reason("Краток одмор")
-                    .status(LeaveRequestStatus.PENDING)
-                    .created_at(LocalDateTime.now())
-                    .employee(adminEmp)
-                    .build();
-
-            leaveRequestRepository.saveAll(List.of(lr1, lr2, lr3, lr4));
+                leaveRequestRepository.save(sampleAdminLeave);
+            }
         }
     }
 }

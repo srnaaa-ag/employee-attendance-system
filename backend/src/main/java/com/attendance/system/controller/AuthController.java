@@ -1,15 +1,16 @@
 package com.attendance.system.controller;
 
 import com.attendance.system.dto.EmployeeRegistrationRequest;
+import com.attendance.system.dto.LoginResponseDTO;
+import com.attendance.system.dto.TwoFaVerifyRequestDTO;
 import com.attendance.system.model.domain.Employee;
 import com.attendance.system.model.domain.User;
 import com.attendance.system.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,7 +26,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody User request) {
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody User request) {
         return ResponseEntity.ok(authService.login(request.getEmail(), request.getPassword()));
+    }
+
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<LoginResponseDTO> verifyTwoFactor(@Valid @RequestBody TwoFaVerifyRequestDTO request) {
+        return ResponseEntity.ok(
+                authService.verifyTwoFactor(request.getPendingToken(), request.getCode())
+        );
     }
 }

@@ -270,3 +270,34 @@
     font-size: 1rem;
   }
 }
+
+.login__2fa-hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.login__2fa-dev {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.login__input--otp {
+  letter-spacing: 0.35em;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.login__row--2fa {
+  margin-top: 0.75rem;
+}
+
+.login__back-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}

@@ -9,6 +9,19 @@ function getHeaders() {
     };
 }
 
+async function parseAuthError(response) {
+    const text = await response.text();
+    if (!text?.trim()) {
+        return `HTTP ${response.status}`;
+    }
+    try {
+        const body = JSON.parse(text);
+        return body.message || body.error || text;
+    } catch {
+        return text;
+    }
+}
+
 export async function login(email, password) {
     const response = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
@@ -17,7 +30,21 @@ export async function login(email, password) {
     });
 
     if (!response.ok) {
-        throw new Error("Invalid credentials");
+        throw new Error(await parseAuthError(response));
+    }
+
+    return response.json();
+}
+
+export async function verifyTwoFactor(pendingToken, code) {
+    const response = await fetch(`${BASE_URL}/auth/2fa/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendingToken, code }),
+    });
+
+    if (!response.ok) {
+        throw new Error(await parseAuthError(response));
     }
 
     return response.json();

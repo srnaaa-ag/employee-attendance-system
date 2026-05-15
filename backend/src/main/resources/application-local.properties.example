@@ -1,0 +1,33 @@
+# =============================================================================
+# Копирај го овој фајл како: application-local.properties
+# (веќе е во .gitignore — клучевите НЕ одат на GitHub)
+# =============================================================================
+
+app.2fa.enabled=true
+app.2fa.delivery=twilio
+
+# 1) Account SID — Live credentials (AC...)
+twilio.account-sid=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# 2a) НАЈЛЕСНО: Auth Token (Live credentials → Show → копирај)
+twilio.auth-token=your_auth_token_here
+
+# 2b) ИЛИ API Key (https://console.twilio.com/us1/account/keys-credentials/api-keys)
+#     SID ≠ Secret! Secret се гледа само при Create.
+twilio.api-key-sid=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+twilio.api-key-secret=your_api_key_secret_here
+
+# 3) Verify Service SID — Verify → Services → Create → SID почнува со VA
+#    Во сервисот мора да е ENABLED „Email“ (SendGrid / Twilio Email)
+twilio.verify-service-sid=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# -----------------------------------------------------------------------------
+# Алтернатива без Twilio (откоментирај и смени app.2fa.delivery):
+# app.2fa.delivery=smtp
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=tvoj@gmail.com
+# spring.mail.password=google-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+# app.mail.from=tvoj@gmail.com

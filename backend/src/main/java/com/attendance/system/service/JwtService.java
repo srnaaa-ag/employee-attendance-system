@@ -49,6 +49,31 @@ public class JwtService {
                 .getBody();
     }
 
+    private static final String CLAIM_TYPE = "type";
+    private static final String TYPE_2FA_PENDING = "2fa_pending";
+
+    public String generatePending2FaToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(CLAIM_TYPE, TYPE_2FA_PENDING);
+        return Jwts
+                .builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 10))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String validatePending2FaTokenAndGetEmail(String token) {
+        Claims claims = extractAllClaims(token);
+        String type = claims.get(CLAIM_TYPE, String.class);
+        if (!TYPE_2FA_PENDING.equals(type)) {
+            throw new IllegalArgumentException("Invalid pending token");
+        }
+        return claims.getSubject();
+    }
+
     // Generate token with user details
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
@@ -80,10 +105,20 @@ public class JwtService {
                 .compact();
     }
 
+    /** Pending 2FA токен не смее да се користи како Bearer за API. */
+    public boolean isFullSessionToken(String token) {
+        Claims claims = extractAllClaims(token);
+        String type = claims.get(CLAIM_TYPE, String.class);
+        return !TYPE_2FA_PENDING.equals(type);
+    }
+
     // Validate token
     public boolean isTokenValid(String token, UserDetails userDetails) {
+        if (!isFullSessionToken(token)) {
+            return false;
+        }
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
     // Check if token is expired
