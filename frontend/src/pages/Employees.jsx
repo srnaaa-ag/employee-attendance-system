@@ -8,7 +8,7 @@ import {
 } from "../services/employeeService";
 import EmployeeEditModal from "../components/EmployeeEditModal.jsx";
 import CreateEmployeeModal from "../components/CreateEmployeeModal.jsx";
-import ImportEmployeesCsvModal from "../components/ImportEmployeesCsvModal.jsx";
+import ImportEmployeesExcelModal from "../components/ImportEmployeesExcelModal.jsx";
 import "./Employees.css";
 
 const faceBadgeClass = (kind) =>
@@ -182,7 +182,7 @@ export default function Employees() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState(emptyCreateDraft());
 
-  const [importCsvOpen, setImportCsvOpen] = useState(false);
+  const [importExcelOpen, setImportExcelOpen] = useState(false);
 
   const filteredEmployees = employees.filter((e) =>
       String(e.name ?? "")
@@ -486,9 +486,9 @@ export default function Employees() {
               <button
                   type="button"
                   className="employees__btn employees__btn--outline"
-                  onClick={() => setImportCsvOpen(true)}
+                  onClick={() => setImportExcelOpen(true)}
               >
-                Импорт CSV
+                Импорт Excel
               </button>
             </div>
 
@@ -645,9 +645,9 @@ export default function Employees() {
             onSave={saveCreateModal}
         />
 
-        <ImportEmployeesCsvModal
-            open={importCsvOpen}
-            onClose={() => setImportCsvOpen(false)}
+        <ImportEmployeesExcelModal
+            open={importExcelOpen}
+            onClose={() => setImportExcelOpen(false)}
             onImported={loadEmployees}
         />
       </div>

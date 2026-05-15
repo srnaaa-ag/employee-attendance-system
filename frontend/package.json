@@ -11,10 +11,12 @@
   "dependencies": {
     "face-api.js": "^0.22.2",
     "leaflet": "^1.9.4",
+    "pdfmake": "^0.3.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.6.1"
+    "react-router-dom": "^7.6.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { registerEmployee } from "../services/employeeService.js";
 import {
-  downloadEmployeeCsvTemplate,
-  parseEmployeeCsv,
-} from "../utils/csvEmployeeImport.js";
+  downloadEmployeeExcelTemplate,
+  parseEmployeeExcel,
+} from "../utils/employeeImport.js";
 
-export default function ImportEmployeesCsvModal({
+export default function ImportEmployeesExcelModal({
   open,
   onClose,
   onImported,
@@ -60,8 +60,18 @@ export default function ImportEmployeesCsvModal({
 
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? "");
-      setParseResult(parseEmployeeCsv(text));
+      const buffer = reader.result;
+      if (!(buffer instanceof ArrayBuffer)) {
+        setParseResult({
+          headers: [],
+          items: [],
+          headerError: "Не може да се прочита датотеката.",
+          importableCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      setParseResult(parseEmployeeExcel(buffer));
     };
     reader.onerror = () => {
       setParseResult({
@@ -72,7 +82,7 @@ export default function ImportEmployeesCsvModal({
         rowCount: 0,
       });
     };
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   };
 
   const handleImport = async () => {
@@ -122,13 +132,13 @@ export default function ImportEmployeesCsvModal({
             className="emp-modal__panel emp-modal__panel--wide"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="csv-import-title"
+            aria-labelledby="excel-import-title"
             ref={panelRef}
             onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="emp-modal__header">
-            <h2 id="csv-import-title" className="emp-modal__title">
-              Импорт на вработени (CSV)
+            <h2 id="excel-import-title" className="emp-modal__title">
+              Импорт на вработени (Excel)
             </h2>
             <button
                 type="button"
@@ -143,17 +153,18 @@ export default function ImportEmployeesCsvModal({
 
           <div className="emp-modal__body">
             <p className="emp-modal__hint">
-              Употреби UTF-8 CSV. Excel: <strong>Зачувај како</strong> → CSV (раздвоено со
-              запирка). Поддржани се и редови со точка-запирка (;) како разделувач.
+              Поддржани формати: <strong>.xlsx</strong> и <strong>.xls</strong>. Користи го
+              првиот лист во датотеката. За датуми и време, препорачано е формат{" "}
+              <strong>YYYY-MM-DD</strong> и <strong>HH:MM</strong>.
             </p>
 
             <div className="employees__import-actions">
               <button
                   type="button"
                   className="employees__btn employees__btn--outline"
-                  onClick={() => downloadEmployeeCsvTemplate()}
+                  onClick={() => downloadEmployeeExcelTemplate()}
               >
-                Преземи пример (.csv)
+                Преземи пример (.xlsx)
               </button>
               <button
                   type="button"
@@ -166,7 +177,7 @@ export default function ImportEmployeesCsvModal({
               <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv,text/plain"
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="emp-modal__file"
                   style={{ display: "none" }}
                   onChange={handleFileChange}

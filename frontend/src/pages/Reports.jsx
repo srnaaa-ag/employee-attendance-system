@@ -1,36 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { getEmployeeReportSummary } from "../services/reportService.js";
+import { downloadReportPdf } from "../utils/reportPdfExport.js";
 import { useMatchMedia } from "../hooks/useMatchMedia";
 import "./Reports.css";
-
-function downloadCsv(filename, rows, fromDate, toDate, deptLabel, warningFullMonthOfTo) {
-    const header = ["Период", `${fromDate} – ${toDate}`, "Оддел", deptLabel];
-    const cols = ["Вработен", "Денови присуство", "Одобрено отсуство (ден.)", "Работни часови", "Доцнења", "Предупредување"];
-    const lines = [header.join(";")];
-    if (warningFullMonthOfTo) {
-        lines.push(
-            [
-                "Напомена",
-                `„Предупредување“ според доцнења за целиот месец на „До“ (${toDate}). „Доцнења“ останува за периодот Од–До.`,
-                "",
-                "",
-            ].join(";"),
-        );
-    }
-    lines.push(cols.join(";"));
-    for (const r of rows) {
-        lines.push(
-            [r.fullName, r.presentDays, r.approvedLeaveDays, r.workedHoursFormatted, r.lateCount, r.warning].join(";"),
-        );
-    }
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
 
 function formatDisplayDate(iso) {
     if (!iso || !iso.includes("-")) return iso;
@@ -95,15 +67,15 @@ export default function Reports() {
 
     const deptLabel = department === "all" ? "Сите" : department;
 
-    function handleDownloadCsv() {
-        downloadCsv(
-            `izvestai_${fromDate}_${toDate}.csv`,
-            filteredRows,
-            formatDisplayDate(fromDate),
-            formatDisplayDate(toDate),
+    function handleDownloadPdf() {
+        downloadReportPdf({
+            filename: `izvestai_${fromDate}_${toDate}.pdf`,
+            rows: filteredRows,
+            fromDate: formatDisplayDate(fromDate),
+            toDate: formatDisplayDate(toDate),
             deptLabel,
             warningFullMonthOfTo,
-        );
+        });
     }
 
     return (
@@ -177,8 +149,8 @@ export default function Reports() {
                             <span className="reports__label-spacer" aria-hidden>
                                 &nbsp;
                             </span>
-                            <button type="button" className="reports__btn-csv" onClick={handleDownloadCsv} disabled={loading}>
-                                Преземи CSV
+                            <button type="button" className="reports__btn-pdf" onClick={handleDownloadPdf} disabled={loading}>
+                                Преземи PDF
                             </button>
                         </div>
                         <div

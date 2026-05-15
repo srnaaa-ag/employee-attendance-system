@@ -1,6 +1,8 @@
+import * as XLSX from "xlsx";
+
 /** @typedef {{ user: object; employee: object }} RegistrationDraft */
 
-export const CSV_TEMPLATE_HEADERS = [
+export const IMPORT_TEMPLATE_HEADERS = [
   "email",
   "password",
   "first_name",
@@ -54,102 +56,22 @@ const REQUIRED = [
 
 const ALLOWED_ROLES = new Set(["EMPLOYEE", "ADMIN", "SUPER_ADMIN"]);
 
-/**
- * Прва линија на датотеката (со поддршка за наводници низ повеќе линии во теорија — само прв ред).
- */
-function extractFirstRecordLine(text) {
-  let line = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-
-    if (c === '"') {
-      inQuotes = !inQuotes;
-      line += c;
-      continue;
-    }
-
-    if (!inQuotes && (c === "\n" || c === "\r")) {
-      if (c === "\r" && text[i + 1] === "\n") {
-        i++;
-      }
-      break;
-    }
-
-    line += c;
-  }
-
-  return line;
-}
-
-export function detectDelimiter(text) {
-  const first = extractFirstRecordLine(text);
-  const commas = (first.match(/,/g) || []).length;
-  const semis = (first.match(/;/g) || []).length;
-  return semis > commas ? ";" : ",";
-}
-
-/**
- * @param {string} text
- * @param {string} delimiter
- * @returns {string[][]}
- */
-export function parseDelimitedText(text, delimiter) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let i = 0;
-  let inQuotes = false;
-  const len = text.length;
-
-  while (i < len) {
-    const c = text[i];
-
-    if (inQuotes) {
-      if (c === '"') {
-        if (i + 1 < len && text[i + 1] === '"') {
-          field += '"';
-          i += 2;
-        } else {
-          inQuotes = false;
-          i++;
-        }
-      } else {
-        field += c;
-        i++;
-      }
-    } else if (c === '"') {
-      inQuotes = true;
-      i++;
-    } else if (c === delimiter) {
-      row.push(field);
-      field = "";
-      i++;
-    } else if (c === "\n" || c === "\r") {
-      row.push(field);
-      field = "";
-      if (c === "\r" && i + 1 < len && text[i + 1] === "\n") {
-        i++;
-      }
-      i++;
-      if (row.some((cell) => String(cell).trim() !== "")) {
-        rows.push(row);
-      }
-      row = [];
-    } else {
-      field += c;
-      i++;
-    }
-  }
-
-  row.push(field);
-  if (row.some((cell) => String(cell).trim() !== "")) {
-    rows.push(row);
-  }
-
-  return rows;
-}
+const TEMPLATE_EXAMPLE_ROW = [
+  "ana.primer@firma.mk",
+  "lozinka456",
+  "Ана",
+  "Пример",
+  "IT",
+  "Developer",
+  "2024-06-01",
+  "",
+  "EMPLOYEE",
+  "08:00",
+  "16:00",
+  41.9981,
+  21.4254,
+  100,
+];
 
 function normalizeHeaderKey(raw) {
   const t = String(raw ?? "")
@@ -157,13 +79,6 @@ function normalizeHeaderKey(raw) {
       .toLowerCase()
       .replace(/\s+/g, "_");
   return HEADER_ALIASES[t] || t;
-}
-
-function stripBom(text) {
-  if (text.charCodeAt(0) === 0xfeff) {
-    return text.slice(1);
-  }
-  return text;
 }
 
 function parseNumber(val, fallback) {
@@ -187,6 +102,49 @@ function normalizeTime(raw, fallback) {
   return t;
 }
 
+function formatIsoDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function excelSerialToIsoDate(serial) {
+  const parsed = XLSX.SSF.parse_date_code(serial);
+  if (!parsed) return null;
+  const m = String(parsed.m).padStart(2, "0");
+  const d = String(parsed.d).padStart(2, "0");
+  return `${parsed.y}-${m}-${d}`;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function cellToString(value) {
+  if (value == null || value === "") return "";
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatIsoDate(value);
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value > 0 && value < 1) {
+      const totalMinutes = Math.round(value * 24 * 60);
+      const hours = Math.floor(totalMinutes / 60) % 24;
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+    if (value >= 25569 && value < 80000) {
+      const fromSerial = excelSerialToIsoDate(value);
+      if (fromSerial) return fromSerial;
+    }
+    return String(value).replace(",", ".");
+  }
+
+  return String(value).trim();
+}
+
 function normalizeDate(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
@@ -207,6 +165,24 @@ function normalizeDate(raw) {
 }
 
 /**
+ * @param {unknown[][]} rawRows
+ * @returns {string[][]}
+ */
+function rowsToStringMatrix(rawRows) {
+  return rawRows.map((row) => {
+    const cells = Array.isArray(row) ? row : [];
+    const normalized = cells.map((cell) => cellToString(cell));
+    while (
+        normalized.length > 0 &&
+        normalized[normalized.length - 1] === ""
+    ) {
+      normalized.pop();
+    }
+    return normalized;
+  });
+}
+
+/**
  * @param {string[][]} rows
  * @returns {{
  *   headers: string[];
@@ -217,7 +193,11 @@ function normalizeDate(raw) {
  * }}
  */
 export function buildImportItemsFromRows(rows) {
-  if (!rows.length) {
+  const dataRows = rows.filter((row) =>
+      row.some((cell) => String(cell ?? "").trim() !== "")
+  );
+
+  if (!dataRows.length) {
     return {
       headers: [],
       items: [],
@@ -227,7 +207,7 @@ export function buildImportItemsFromRows(rows) {
     };
   }
 
-  const headers = rows[0].map((c) => normalizeHeaderKey(c));
+  const headers = dataRows[0].map((c) => normalizeHeaderKey(c));
 
   const missing = REQUIRED.filter((k) => !headers.includes(k));
   if (missing.length) {
@@ -243,8 +223,8 @@ export function buildImportItemsFromRows(rows) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const items = [];
 
-  for (let r = 1; r < rows.length; r++) {
-    const cells = rows[r];
+  for (let r = 1; r < dataRows.length; r++) {
+    const cells = dataRows[r];
     const line = r + 1;
     const obj = {};
 
@@ -350,26 +330,54 @@ export function buildImportItemsFromRows(rows) {
 }
 
 /**
- * @param {string} fileText
+ * @param {ArrayBuffer} buffer
  */
-export function parseEmployeeCsv(fileText) {
-  const text = stripBom(fileText);
-  const delimiter = detectDelimiter(text);
-  const rows = parseDelimitedText(text, delimiter);
-  return buildImportItemsFromRows(rows);
+export function parseEmployeeExcel(buffer) {
+  try {
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+
+    if (!sheetName) {
+      return {
+        headers: [],
+        items: [],
+        headerError: "Excel датотеката нема листови.",
+        importableCount: 0,
+        rowCount: 0,
+      };
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: "",
+      raw: true,
+    });
+
+    const rows = rowsToStringMatrix(rawRows);
+    return buildImportItemsFromRows(rows);
+  } catch {
+    return {
+      headers: [],
+      items: [],
+      headerError: "Не може да се прочита Excel датотеката.",
+      importableCount: 0,
+      rowCount: 0,
+    };
+  }
 }
 
-export function downloadEmployeeCsvTemplate() {
-  const header = CSV_TEMPLATE_HEADERS.join(",");
-  const example =
-      "ana.primer@firma.mk,lozinka456,Ана,Пример,IT,Developer,2024-06-01,,EMPLOYEE,08:00,16:00,41.9981,21.4254,100";
-  const bom = "\ufeff";
-  const body = `${bom}${header}\n${example}\n`;
-  const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "vraboteni_primer.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+export function downloadEmployeeExcelTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    IMPORT_TEMPLATE_HEADERS,
+    TEMPLATE_EXAMPLE_ROW,
+  ]);
+
+  ws["!cols"] = IMPORT_TEMPLATE_HEADERS.map((h) => ({
+    wch: Math.max(h.length + 2, 14),
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Vraboteni");
+  XLSX.writeFile(wb, "vraboteni_primer.xlsx");
 }
