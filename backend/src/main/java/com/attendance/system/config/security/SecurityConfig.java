@@ -68,6 +68,7 @@ public class SecurityConfig {
                 "http://localhost:5173,http://localhost:5174"
         );
 
+
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
