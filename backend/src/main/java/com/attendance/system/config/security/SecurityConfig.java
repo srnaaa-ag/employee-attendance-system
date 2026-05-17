@@ -37,104 +37,49 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                .cors(cors -> {})
+                // ✅ IMPORTANT FIX
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public auth endpoints
+                        // ✅ ALLOW PREFLIGHT REQUESTS
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Employee management - ADMIN / SUPER_ADMIN
-                        .requestMatchers(HttpMethod.GET, "/api/employees/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/employees/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/employees/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/employees/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Employees
+                        .requestMatchers(HttpMethod.GET, "/api/employees/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/employees/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/employees/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                        // Profile
-                        .requestMatchers("/api/profile/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-
-                        // Attendance
-                        .requestMatchers(HttpMethod.GET, "/api/attendance/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/attendance/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/attendance/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/attendance/**")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-
-                        // Leave requests - employee actions
-                        .requestMatchers(HttpMethod.POST, "/api/leave-requests")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/employee/me")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/cancel")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-
-                        // Leave requests - admin actions
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/{id}")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/status/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/date-range")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/leave-requests/pending")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/approve")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/leave-requests/*/reject")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/leave-requests/**")
-                        .hasRole("SUPER_ADMIN")
-
-                        // Correction requests - employee actions
-                        .requestMatchers(HttpMethod.POST, "/api/correction-requests")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/employee/me")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/cancel")
-                        .hasAnyRole("EMPLOYEE", "ADMIN", "SUPER_ADMIN")
-
-                        // Correction requests - admin actions
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/correction-requests/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/approve")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/correction-requests/*/reject")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/correction-requests/**")
-                        .hasRole("SUPER_ADMIN")
-
-                        // Reports
-                        .requestMatchers(HttpMethod.GET, "/api/reports/**")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                        // Fallback
+                        // Everything else
                         .anyRequest().authenticated()
                 )
+
                 .authenticationProvider(authenticationProvider())
+
+                // ✅ JWT FILTER
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    // =======================
+    // CORS CONFIG (CRITICAL)
+    // =======================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
+
+        CorsConfiguration config = new CorsConfiguration();
 
         String allowedOrigins = env.getProperty(
                 "cors.allowed.origins",
@@ -145,27 +90,38 @@ public class SecurityConfig {
                 .map(String::trim)
                 .toList();
 
-        corsConfiguration.setAllowedOrigins(origins);
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        corsConfiguration.setAllowedHeaders(List.of("*"));
-        corsConfiguration.setAllowCredentials(true);
+        config.setAllowedOrigins(origins);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration);
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
 
         return source;
     }
 
+    // =======================
+    // AUTH
+    // =======================
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ) throws Exception {
         return config.getAuthenticationManager();
     }
 
