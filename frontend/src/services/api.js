@@ -1,6 +1,7 @@
 import { getToken } from "./authService";
 
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = "https://employee-attendance-system-ngpx.onrender.com/api";
+
 
 function getHeaders() {
     return {
